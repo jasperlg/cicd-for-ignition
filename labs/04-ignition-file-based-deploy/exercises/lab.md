@@ -210,7 +210,7 @@ Edit a view in the shipped `example-project` and ship it to test by hand — thi
    ```bash
    scripts/scan.sh
    ```
-   Verify in a browser: open the project at <http://localhost:8088/data/perspective/client/example-project> (log in if asked). The top-left card now reads **RUN CONTROL V2** (the label renders upper case).
+   Verify in a browser: open the project at <http://localhost:8088/data/perspective/client/example-project>. The top-left card now reads **RUN CONTROL V2** (the label renders upper case).
 3. Copy the same change to **test** manually. Test started empty, so there is nothing to wipe — just copy the project over and scan:
    ```bash
    docker cp ./projects/. lab04-ignition-test:/usr/local/bin/ignition/data/projects/
