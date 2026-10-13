@@ -226,6 +226,14 @@ jobs:
       # screen ships. Derive the database from $DEPLOY_TARGET (env above):
       # a production deploy migrates ignition_production, not the test database.
 
+      - name: Migrate database
+        run: |
+          case "$DEPLOY_TARGET" in
+            production) db=ignition_production ;;
+            *)    db=ignition_test ;;
+          esac
+          ./scripts/migrate.sh up --database "$db"
+
       - name: Prune working tree per .deployignore
         # Patterns containing a slash → repo-relative path match.
         # Bare names (.DS_Store, *.swp) → match anywhere in the tree, the
