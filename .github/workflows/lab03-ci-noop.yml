@@ -1,0 +1,21 @@
+name: Lab 03 · CI (no-op twin)
+on:
+  pull_request:
+    paths:
+      - "labs/03-github-actions/**"                # this lab's files...
+      - "!labs/03-github-actions/projects/**"      # ...minus everything lab03-ci.yml checks
+      - "!labs/03-github-actions/scripts/**"
+      - "!labs/03-github-actions/docker-compose.yml"
+      - "!labs/03-github-actions/.yamllint.yml"
+      - "!labs/03-github-actions/rule_config.json"
+      - "!labs/03-github-actions/.github/**"
+permissions: {}
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No lint-relevant files changed."
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No validate-relevant files changed."
