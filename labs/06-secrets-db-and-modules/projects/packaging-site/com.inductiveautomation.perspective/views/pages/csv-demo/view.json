@@ -1,0 +1,46 @@
+{
+  "custom": {
+    "line": ""
+  },
+  "params": {},
+  "props": {},
+  "root": {
+    "children": [
+      {
+        "meta": {"name": "TextField"},
+        "position": {"basis": "200px"},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {"bidirectional": true, "path": "view.custom.line"},
+              "type": "property"
+            }
+          }
+        },
+        "props": {},
+        "type": "ia.input.text-field"
+      },
+      {
+        "meta": {"name": "Label"},
+        "position": {"basis": "200px"},
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {"path": "view.custom.line"},
+              "transforms": [
+                {
+                  "code": "\tfrom org.apache.commons.csv import CSVFormat\n\tfrom java.io import StringReader\n\trecords = CSVFormat.DEFAULT.parse(StringReader(value or \"\")).getRecords()\n\treturn \" | \".join(records[0]) if records else \"\"",
+                  "type": "script"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.display.label"
+      }
+    ],
+    "meta": {"name": "root"},
+    "type": "ia.container.flex"
+  }
+}
