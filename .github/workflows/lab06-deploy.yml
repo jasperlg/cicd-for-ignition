@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - name: Check out repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           clean: true
 
@@ -251,6 +251,10 @@ jobs:
         #     and identity-provider/default/ — the gateway-owned INTERNAL
         #     identity; users.json holds THIS gateway's admin password hash.
         #     Wiping or overwriting it locks everyone out.
+        #   config/resources/.resources/ — the running gateway's own blob
+        #     store (it is gitignored, so nothing in the payload replaces it).
+        #     Wiping it breaks logins until the next successful scan or
+        #     restart, and a scan that then fails leaves the UI locked.
         #   config/resources/core/ignition/api-token/ — this gateway's scan-API
         #     token, generated per clone by setup.sh and never committed (a
         #     committed token would be a working credential in every fork).
@@ -273,7 +277,7 @@ jobs:
             fi
             if [ -d '$GATEWAY_DATA_PATH/config/resources' ]; then
               find '$GATEWAY_DATA_PATH/config/resources' -mindepth 1 -maxdepth 1 \
-                ! -name local ! -name core -exec rm -rf {} +
+                ! -name local ! -name core ! -name .resources -exec rm -rf {} +
             fi
             if [ -d '$GATEWAY_DATA_PATH/config/resources/core' ]; then
               find '$GATEWAY_DATA_PATH/config/resources/core' -mindepth 1 -maxdepth 1 \

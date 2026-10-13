@@ -15,10 +15,11 @@
 #   scripts/scan.sh test          # test gateway
 #   scripts/scan.sh production    # production gateway
 #
-# Gateways:
-#   local        http://localhost:8088   (default — student's bind-mounted gateway)
-#   test         http://localhost:8089   (deploy.yml target)
-#   production   http://localhost:8090   (deploy.yml target=production)
+# Gateways (host ports follow GATEWAY_PORT / TEST_GATEWAY_PORT /
+# PRODUCTION_GATEWAY_PORT from the environment or .env):
+#   local        http://localhost:8088   (default: student's bind-mounted gateway)
+#   test         http://localhost:8089   (lab06-deploy.yml, push to main)
+#   production   http://localhost:8090   (lab06-v* tag, lab06-release.yml)
 #
 # Env (override the gateway defaults when needed):
 #   IGNITION_URL          full URL; if set, wins over the gateway preset
@@ -45,7 +46,7 @@ gateway="local"
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
-      sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     local|test|production)

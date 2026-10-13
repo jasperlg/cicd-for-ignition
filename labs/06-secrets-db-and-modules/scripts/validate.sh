@@ -1,18 +1,23 @@
 #!/bin/bash
-# validate.sh — local mirror of .github/workflows/lab06-ci.yml (repo root).
+# validate.sh: run the checks of .github/workflows/lab06-ci.yml (repo root)
+# locally, before you open a PR.
 #
-# Run this before opening a PR to catch the cheap stuff the CI workflow checks,
-# without waiting for a runner:
+# Always runs (only bash, git and python3 needed), the `validate` and
+# `secret-scan` jobs:
 #   1. Every *.json under projects/ and services/ parses.
 #   2. .deployignore patterns are relative (no leading /).
 #   3. Secret scan: no real files under secrets/, no known secret values in
 #      the gateway payload (projects/ + services/). A full gitleaks history
-#      scan is the lab's stretch S3 — it runs in CI, not here.
+#      scan is the lab's stretch S3; it runs in CI, not here.
 #   4. security-properties doesn't name a throwaway temp_N identity.
-#   5. actionlint passes on this lab's workflows (.github/workflows/lab06-*.yml
-#      at the repo root; only if actionlint is installed).
+# Runs when the tool is installed, the `lint` job (skipped with a hint
+# otherwise; CI always runs them):
+#   5. ign-lint on every Perspective view.json, with rule_config.json
+#      (pip install ign-lint==0.6.1, the version CI pins).
+#   6. yamllint, shellcheck and actionlint, as in CI.
+#   7. docker compose config -q.
 #
-# Exits non-zero if any check fails. No Ignition or Docker needed.
+# Exits non-zero if any check fails. No running Ignition needed.
 
 set -uo pipefail
 
@@ -136,17 +141,64 @@ else
   echo -e "  ${YELLOW}skipped${NC} — $secprops not found"
 fi
 
-# 5. actionlint (optional) -----------------------------------------------------
+# 5. ign-lint (optional) -------------------------------------------------------
+# Same command as the lint job. ign-lint exits non-zero on warnings too, so a
+# view that CI rejects fails here first.
+echo "→ ign-lint (projects/**/view.json)"
+if command -v ign-lint > /dev/null 2>&1; then
+  if ign-lint --config rule_config.json --files "projects/**/view.json"; then
+    echo -e "  ${GREEN}ok${NC}"
+  else
+    rc=1
+  fi
+else
+  echo -e "  ${YELLOW}skipped${NC}: ign-lint not installed (CI runs it; pip install ign-lint==0.6.1)"
+fi
+
+# 6. yamllint + shellcheck (optional) -----------------------------------------
+repo_root="$(git rev-parse --show-toplevel)"
+echo "→ yamllint (this lab + .github/workflows/lab06-*.yml)"
+if command -v yamllint > /dev/null 2>&1; then
+  if yamllint -c .yamllint.yml . "$repo_root"/.github/workflows/lab06-*.yml; then
+    echo -e "  ${GREEN}ok${NC}"
+  else
+    rc=1
+  fi
+else
+  echo -e "  ${YELLOW}skipped${NC}: yamllint not installed (CI runs it; pip install yamllint==1.35.1)"
+fi
+echo "→ shellcheck (scripts/*.sh)"
+if command -v shellcheck > /dev/null 2>&1; then
+  if shellcheck -x scripts/*.sh; then
+    echo -e "  ${GREEN}ok${NC}"
+  else
+    rc=1
+  fi
+else
+  echo -e "  ${YELLOW}skipped${NC}: shellcheck not installed (CI runs it)"
+fi
+
 echo "→ actionlint (.github/workflows/lab06-*.yml)"
 if command -v actionlint > /dev/null 2>&1; then
-  repo_root="$(git rev-parse --show-toplevel)"
   if actionlint -color -config-file .github/actionlint.yaml "$repo_root"/.github/workflows/lab06-*.yml; then
     echo -e "  ${GREEN}ok${NC}"
   else
     rc=1
   fi
 else
-  echo -e "  ${YELLOW}skipped${NC} — actionlint not installed (CI runs it; install from https://github.com/rhysd/actionlint to check locally)"
+  echo -e "  ${YELLOW}skipped${NC}: actionlint not installed (CI runs it; install from https://github.com/rhysd/actionlint to check locally)"
+fi
+
+# 7. docker compose config ------------------------------------------------------
+echo "→ docker compose config"
+if command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then
+  if docker compose config -q; then
+    echo -e "  ${GREEN}ok${NC}"
+  else
+    rc=1
+  fi
+else
+  echo -e "  ${YELLOW}skipped${NC}: docker compose not available"
 fi
 
 echo ""

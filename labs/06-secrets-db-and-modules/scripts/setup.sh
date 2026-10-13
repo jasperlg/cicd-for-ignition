@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-shot setup for the lab 04 stack:
+# One-shot setup for the lab 06 stack:
 #   - sanity-checks the host (docker compose v2, curl, WSL quirks)
 #   - installs the course repo's git hooks (skip-worktree for the machine-local
 #     Ignition config file) and a diff driver that hides volatile resource.json
@@ -68,10 +68,10 @@ echo "================================"
 echo ""
 echo "This script initializes the development environment:"
 echo "  - three Ignition 8.3 gateways:"
-echo "      local  http://localhost:8088   (your working gateway, bind-mounted from the repo)"
-echo "      test    http://localhost:8089   (populated by deploy.yml on push to main)"
-echo "      production   http://localhost:8090   (populated by deploy.yml run with target=production)"
-echo "  - one TimescaleDB on localhost:5432 hosting ignition_local_development / ignition_test / ignition_production"
+echo "      local       $(gateway_url local)   (your working gateway, bind-mounted from the repo)"
+echo "      test        $(gateway_url test)   (populated by lab06-deploy.yml on push to main)"
+echo "      production  $(gateway_url production)   (populated by a lab06-v* tag: lab06-release.yml)"
+echo "  - one TimescaleDB on localhost:$(postgres_port) hosting ignition_local_development / ignition_test / ignition_production"
 echo ""
 
 
@@ -539,12 +539,12 @@ echo ""
 echo -e "${GREEN}Setup complete!${NC}"
 echo ""
 printf "Gateways:\n"
-printf "  %-8s  %-23s  user=%s  pass=%s\n" "local"  "http://localhost:8088"  "${ACTUAL_LOCAL_USER:-admin}"  "${ACTUAL_LOCAL_PASS:-(see .env)}"
-printf "  %-8s  %-23s  user=%s  pass=%s\n" "test"    "http://localhost:8089"  "${ACTUAL_TEST_USER:-admin}"    "${ACTUAL_TEST_PASS:-(see .env)}"
-printf "  %-8s  %-23s  user=%s  pass=%s\n" "production"   "http://localhost:8090"  "${ACTUAL_PRODUCTION_USER:-admin}"   "${ACTUAL_PRODUCTION_PASS:-(see .env)}"
+printf "  %-10s  %-23s  user=%s  pass=%s\n" "local"      "$(gateway_url local)"      "${ACTUAL_LOCAL_USER:-admin}"      "${ACTUAL_LOCAL_PASS:-(see .env)}"
+printf "  %-10s  %-23s  user=%s  pass=%s\n" "test"       "$(gateway_url test)"       "${ACTUAL_TEST_USER:-admin}"       "${ACTUAL_TEST_PASS:-(see .env)}"
+printf "  %-10s  %-23s  user=%s  pass=%s\n" "production" "$(gateway_url production)" "${ACTUAL_PRODUCTION_USER:-admin}" "${ACTUAL_PRODUCTION_PASS:-(see .env)}"
 echo ""
 echo "TimescaleDB:"
-echo "  Host: localhost  Port: 5432"
+echo "  Host: localhost  Port: $(postgres_port)"
 echo "  Databases: ignition_local_development, ignition_test, ignition_production"
 echo "  Username: ${ACTUAL_PG_USER:-ignition}  Password: ${ACTUAL_PG_PASS:-(see .env)}"
 echo ""

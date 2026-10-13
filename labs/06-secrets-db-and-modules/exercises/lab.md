@@ -6,11 +6,12 @@ modules and JAR files. Two real production Ignition repos we maintain (one
 file-based, one image-based; shown on screen by the instructor) are the working
 references throughout.
 
-**Duration:** ~3 hours
+**Duration:** ~3.5 hours
 
 * 60 min teaching ([`slides/teaching.html`](../slides/teaching.html))
-* 45–60 min we-do (demos below, woven into the teaching)
-* 60 min you-do ([`slides/assignment.html`](../slides/assignment.html) mirrors this file)
+* 45-60 min we-do (demos below, woven into the teaching)
+* ~85 min you-do ([`slides/assignment.html`](../slides/assignment.html) mirrors this file):
+  warm-up ±10, Part 1 ±30, Part 2 ±20, Part 3 ±25
 * Debrief
 
 <!-- Infra status: verified end to end on a real personal fork on 2026-07-30 —
@@ -60,11 +61,12 @@ migrations. The workflows live at the course repo's root, not in this folder:
 > (`./course-setup.sh` at the repo root does the same thing for you; re-run it
 > if you're not sure.)
 
-Also make sure `gh` points at your fork —
+Also make sure `gh` points at your fork for `gh pr create`:
 `gh repo set-default <you>/cicd-for-ignition`, the one-time course setup step
-(check with `gh repo set-default --view`). The warm-up's `gh secret set`
-commands (and any `gh pr create`) resolve against this default; without it they
-ask which repo you mean, or target the course repo.
+(check with `gh repo set-default --view`). `gh secret set` does not use that
+default: in a clone with two remotes (`origin` = your fork, `upstream` = the
+course repo) it stops with `multiple remotes detected`. That is why every
+`gh secret set` in this lab names the repo with `-R <you>/cicd-for-ignition`.
 
 ---
 
@@ -111,8 +113,8 @@ without them nothing deploys. From the CLI instead of the UI:
 ```bash
 gh api -X PUT repos/<you>/cicd-for-ignition/environments/lab06-gateway-test
 gh api -X PUT repos/<you>/cicd-for-ignition/environments/lab06-gateway-production
-gh secret set IGNITION_API_KEY --env lab06-gateway-test  --body "$(grep '^IGNITION_API_KEY_TEST=' .env | cut -d= -f2-)"
-gh secret set IGNITION_API_KEY --env lab06-gateway-production --body "$(grep '^IGNITION_API_KEY_PRODUCTION=' .env | cut -d= -f2-)"
+gh secret set IGNITION_API_KEY -R <you>/cicd-for-ignition --env lab06-gateway-test       --body "$(grep '^IGNITION_API_KEY_TEST=' .env | cut -d= -f2-)"
+gh secret set IGNITION_API_KEY -R <you>/cicd-for-ignition --env lab06-gateway-production --body "$(grep '^IGNITION_API_KEY_PRODUCTION=' .env | cut -d= -f2-)"
 ```
 
 Now trigger `lab06-deploy.yml` (*Lab 06 · Deploy*) for test and
@@ -145,9 +147,10 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   **both** connections at their **referenced** secret (in every deployment
   mode that overrides the password field). Then check `git status`: the UI
   writes the provider into the **active mode's collection**
-  (`resources/local-development/ignition/secret-provider/`), and `local-development` never deploys —
-  test would fault on a missing provider while local stays green. Move it
-  to core and rescan:
+  (`resources/local-development/ignition/secret-provider/`), and
+  `local-development` never deploys: test would fault on a missing provider
+  while local stays green. Move it to core and rescan (already under
+  `resources/core/`? Skip the `mv`):
 
   ```bash
   mv services/config/resources/{local-development,core}/ignition/secret-provider
@@ -162,8 +165,18 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   `ignition_production` — production inherits the same core flaw; copy the pattern from
   `TimescaleDB`, which has all three modes), and add
   `POSTGRES_PASSWORD` + `REPORTING_PASSWORD` as secrets on **both** the
-  `lab06-gateway-test` and `lab06-gateway-production` environments plus the
-  **Materialize secret files** step in `lab06-deploy.yml`
+  `lab06-gateway-test` and `lab06-gateway-production` environments. Use the
+  same values as `secrets/*.example` (one Postgres serves all three
+  databases), straight from the files you made in 1A:
+
+  ```bash
+  gh secret set POSTGRES_PASSWORD  -R <you>/cicd-for-ignition --env lab06-gateway-test       < secrets/postgres_password.txt
+  gh secret set REPORTING_PASSWORD -R <you>/cicd-for-ignition --env lab06-gateway-test       < secrets/reporting_password.txt
+  gh secret set POSTGRES_PASSWORD  -R <you>/cicd-for-ignition --env lab06-gateway-production < secrets/postgres_password.txt
+  gh secret set REPORTING_PASSWORD -R <you>/cicd-for-ignition --env lab06-gateway-production < secrets/reporting_password.txt
+  ```
+
+  Then add the **Materialize secret files** step in `lab06-deploy.yml`
   (umask 177 + `printf`, at the marked `# Part 1C` comment — i.e. before the
   pre-wired "Ship secret files" step that hands them to the gateway). Nothing is
   deployed yet.
@@ -173,11 +186,14 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   diff for the password does hit, on the `-` lines: you are *deleting* the dummy
   defaults that were already committed in `docker-compose.yaml`) → **open the
   PR** → **watch the PR validate** (`lab06-ci.yml` green) →
-  **merge** → **watch the pipeline deploy** (materialize secrets → up → scan →
-  verify) → **verify test** (both connections Valid, `TimescaleDB_Reports`
-  on `ignition_test`) → **release to production with a tag** (`git tag lab06-v1.0.0
-  && git push origin lab06-v1.0.0` — the Lab 04 routing: the tag, not the merge, is
-  what ships to production. `lab06-release.yml` fires on the tag and runs the same
+  **merge** → **watch the pipeline deploy** (materialize secret files → ship
+  them into the gateway → ship projects and config → scan → smoke check) →
+  **verify test** (both connections Valid, `TimescaleDB_Reports` on
+  `ignition_test`) → **release to production with a tag** (`git switch main &&
+  git pull && git tag lab06-v1.0.0 && git push origin lab06-v1.0.0`: after the
+  merge on github.com you are still on your feature branch, so switch and pull
+  first, or the tag lands on the feature commit. The Lab 04 routing: the tag,
+  not the merge, is what ships to production. `lab06-release.yml` fires on the tag and runs the same
   `lab06-deploy.yml` with `target: production`: same commit, same pipeline steps —
   including the ones you added — different environment) → **verify production**
   (both Valid, `TimescaleDB_Reports` on `ignition_production`). Fork carried a
@@ -256,9 +272,9 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   `TimescaleDB` connection — so the same screen reads `ignition_test` on test
   and `ignition_production` on production, and it needs its table to already be
   there. That is the whole argument for migrate-before-ship.
-- **Gate:** a green deploy run whose log shows migrate → ship → scan → verify, and test's ledger at version 2 (a later `lab06-v*` release migrates `ignition_production` the same way).
+- **Gate:** a green deploy run whose log shows migrate → ship → scan → verify, and test's ledger at version 2 (the `lab06-v1.1.0` release at the end of Part 3 migrates `ignition_production` the same way).
 
-### Part 3 — deploy three third-party modules (±10 min)
+### Part 3: deploy three third-party modules (±25 min)
 - Install the three spare `.modl` files by adding **minimal** `services/modules.json` entries, let the gateway derive the acceptance fields, commit them, ship them through the pipeline, and verify they come up **Running** with no hands on the gateway.
 
   The spare modules are **Embr Periscope**, **Embr Charts** and the **TimescaleDB Historian**. Their `.modl` files already sit in `third-party-modules/` — and that is *all* that ships: no `modules.json` entry, and their ids are absent from the compose module env vars. The gateway neither loads nor trusts them.
@@ -290,12 +306,18 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   }
   ```
 
-  **Step 4 — boot once and let the gateway fill in the rest.** `docker compose up -d` — the env lists live in a shared YAML anchor, so this recreates **all three** gateways, and the local one is the one that matters here. On that boot it accepts the licenses from the env vars, installs the modules headlessly and **rewrites `modules.json`**, appending to each entry the two fields it computed:
+  **Step 4: boot once and let the gateway fill in the rest.** `docker compose up -d`: the env lists live in a shared YAML anchor, so this recreates **all three** gateways, and the local one is the one that matters here. On that boot it accepts the licenses from the env vars, installs the modules headlessly and **rewrites `modules.json`**, appending to each entry the two fields it computed:
 
   ```json
     "certFingerprint": "e5a3cf3f06627c175b68b0122ac8f2c3f9c992e2",
     "licenseAgreementHash": 101444854
   ```
+
+  Side effect of that recreate: test and production are **new containers**, and
+  the secret files the pipeline wrote into `/run/secrets` lived in the old ones.
+  Both gateways show their database connections **Faulted** ("Unable to read
+  secret 'POSTGRES_PASSWORD' from provider 'LabSecrets'") until the pipeline
+  deploys to them again: step 6 does that for test, step 7 for production.
 
   `git diff services/modules.json` shows exactly what it added. **Commit those lines** (together with your `docker-compose.yaml` edit). They are the whole point: with acceptance stored as data, a *fresh* gateway (an image-based deploy, a rebuilt container) installs the modules without a human ever clicking an install dialog. The negative test below is what shows you the other side of it: strip the derived lines and the boot stops dead at commissioning.
 
@@ -303,12 +325,24 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
 
   ```bash
   # the gateway logged them starting up:
-  docker logs lab06-gateway-local-development 2>&1 | grep "Starting up module 'com.mussonindustrial"
+  docker logs lab06-gateway-local-development 2>&1 | grep -E "Starting up module 'com\.(mussonindustrial|mustry)"
   ```
 
-  A `Starting up module` line = installed and Running. In the UI it is *Platform → Modules*: all three listed, all Running.
+  Three `Starting up module` lines (Periscope, Charts and the TimescaleDB Historian) = installed and Running. In the UI it is *Platform → Modules*: all three listed, all Running.
 
-  **Step 6 — ship them.** PR → merge → deploy run. Because the module manifest changed, the deploy **restarts** the gateway: modules only load at boot, unlike projects and config, which reload hot.
+  **Step 6: ship them.** PR → merge → deploy run. Because the module manifest changed, the deploy **restarts** the gateway: modules only load at boot, unlike projects and config, which reload hot. The same run ships test's secret files again, so its connections turn Valid.
+
+  **Step 7: release it.** Production still runs `lab06-v1.0.0`, and since step 4 its connections are Faulted:
+
+  ```bash
+  git switch main && git pull && git tag lab06-v1.1.0 && git push origin lab06-v1.1.0
+  ```
+
+  Check production (`http://localhost:8090`): the three modules **Running**, both connections **Valid**, and the `ignition_production` ledger at 2 (this release also carries Part 2's migration):
+
+  ```bash
+  docker exec lab06-timescaledb psql -U ignition -d ignition_production -c 'SELECT * FROM schema_migrations;'
+  ```
 
   **Negative test (what un-accepted looks like), on one module.** Do this on your
   own local gateway, last — not in a second checkout (a second clone would fight
@@ -358,12 +392,27 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   its config tree survives is exactly how you lock yourself out of a gateway.
   `scripts/setup.sh` choreographs the first boot to avoid it; a bare
   `docker compose up` on a wiped volume does not.
-- **Gate:** all three modules Running on test, hands-free — *Platform → Modules* shows all three Running.
+- **Gate:** all three modules Running on test **and** production, hands-free (*Platform → Modules* shows all three Running), and production's connections Valid with its ledger at 2 after the `lab06-v1.1.0` release.
 
 ### Stretch (optional)
-- **S1.** The internal secret provider, and where it breaks: create an **internal secret provider** on the local gateway, store `REPORTING_PASSWORD` in it (the gateway encrypts it and keeps the ciphertext in its own config) and point `TimescaleDB_Reports` at it. Locally it stays Valid; ship it and test faults — the ciphertext only decrypts on the gateway that created it. Explore `ignition-secrets-tool.sh` (shared root key + KEK under `data/config/ignition/keys/`) as the escape hatch, then revert to the referenced secret. What is "the secret" now, and who owns it?
+- **S1.** The internal secret provider, and where it breaks: create an **internal secret provider** on the local gateway, store `REPORTING_PASSWORD` in it (the gateway encrypts it and keeps the ciphertext in its own config) and point `TimescaleDB_Reports` at it in core **and** in the test override from 1C (it overrides the password field, so a core-only change never reaches test). Locally it stays Valid; ship it and test faults — the ciphertext only decrypts on the gateway that created it. Explore `ignition-secrets-tool.sh` (shared root key + KEK under `data/config/ignition/keys/`) as the escape hatch, then revert to the referenced secret. What is "the secret" now, and who owns it?
 - **S2.** Expand-contract rename: `0003` add + backfill, screen switch, `0004` drop.
-- **S3.** Add a `gitleaks` job to `lab06-ci.yml` (`fetch-depth: 0` — the scanner must see history); test with a fake-key PR.
+- **S3.** Add a `gitleaks` job to `lab06-ci.yml`; test it with a fake-key PR (red), then close the PR without merging. `fetch-depth: 0` gives the scanner the PR's full commit range: on a pull request gitleaks scans **every commit in the PR**, so a key added in one commit and deleted in the next still fails. The job needs its own `permissions:` because the workflow default is `contents: read` only, and the action lists the PR's commits and comments on the leak:
+
+  ```yaml
+  gitleaks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  ```
 - **S4.** Ship a **library JAR** through the pipeline and use it on a screen.
   The teaching's second kind of JAR, done for real: `jar-files/jar/` carries
   `commons-csv-1.14.1.jar` (pinned, checksummed in its README), and your job
@@ -374,9 +423,17 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
   succeed without you shipping anything — see `jar-files/jar/README.md`.)
 
   1. **Prove the gap first.** In any lab project, add a view with a **Text
-     Field** and a **Label** next to it. Bind the label's `props.text` to the
-     text field's `props.text` (property binding) and add a **script
-     transform**:
+     Field** and a **Label** next to it, wired through a view custom
+     property (this is the shape `lab06-ci.yml`'s ign-lint accepts; a
+     binding that reaches a sibling with `../TextField` fails its
+     BadComponentReferenceRule):
+     - add a custom property `line` on the view (`view.custom.line`, a
+       string);
+     - bind the text field's `props.text` to `view.custom.line` with a
+       **property binding**, **bidirectional** ticked (typing writes the
+       property);
+     - bind the label's `props.text` to `view.custom.line` (property binding)
+       and add this **script transform**:
 
      ```python
      def transform(self, value, quality, timestamp):
@@ -386,7 +443,11 @@ as `ignition`, `TimescaleDB_Reports` as the read-only `reporting` user.
          return " | ".join(records[0]) if records else ""
      ```
 
-     The binding errors — `No module named csv`: the class isn't on the
+     The imports sit inside the transform because a transform is a function
+     body; the lab's `.config/.ignition-pylintrc` switches off pylint's
+     `import-outside-toplevel` for exactly that reason.
+
+     The binding errors (`No module named csv`): the class isn't on the
      gateway classpath yet. (Perspective bindings run **on the gateway**, so
      it's the gateway's classpath that counts, not the Designer's.)
   2. **Fix local with a file volume.** The local gateway gets the JAR the way

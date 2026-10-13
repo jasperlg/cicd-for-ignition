@@ -1,8 +1,7 @@
 # Secrets management for an Ignition pipeline — the approach
 
 Reference reading for Lab 06. This is the "why + how" behind Part 1 of the
-assignment. It describes the target state; some repo pieces are still marked
-TODO. A production Ignition repo we maintain (shown on screen during the
+assignment. A production Ignition repo we maintain (shown on screen during the
 teaching) is the reference implementation for the full pattern.
 
 ## 1. Three kinds of configuration
@@ -138,7 +137,6 @@ https://docs.inductiveautomation.com/docs/8.3/platform/security/secrets-manageme
 - Gateway backups (`.gwbk`) taken from real systems — they contain users, DB
   connections and keystores
 - Keystores / TLS private keys (`ssl.pfx`, `metro-keystore`, `*.p12`, `*.pem` private halves)
-  <!-- [VERIFY] exact 8.3 on-disk names/paths for the gateway keystores -->
 - The gateway's secrets-management **key files**
   (`data/config/ignition/keys/root.json`, `kek.json`) — if you use the
   shared-keys/ciphertext approach, these ARE the secret. (This lab's repo

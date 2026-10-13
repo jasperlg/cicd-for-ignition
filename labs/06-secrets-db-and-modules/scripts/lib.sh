@@ -36,14 +36,40 @@ fi
 # setup.sh and validation in scan.sh.
 LAB_GATEWAYS=(local test production)
 
-# Map a gateway name → its host-facing URL.
-gateway_url() {
+# Map a gateway name → its host port. Same variables (and defaults) as the
+# port mappings in docker-compose.yaml: an exported value wins, then .env,
+# then the default. Override them in .env when a port is taken on your host.
+gateway_port() {
+  local var def
   case "${1:-local}" in
-    local) printf 'http://localhost:8088' ;;
-    test)   printf 'http://localhost:8089' ;;
-    production)  printf 'http://localhost:8090' ;;
-    *)     return 1 ;;
+    local)      var=GATEWAY_PORT;            def=8088 ;;
+    test)       var=TEST_GATEWAY_PORT;       def=8089 ;;
+    production) var=PRODUCTION_GATEWAY_PORT; def=8090 ;;
+    *)          return 1 ;;
   esac
+  local v="${!var:-}"
+  [ -n "$v" ] || v="$(env_value "$var")"
+  printf '%s' "${v:-$def}"
+}
+
+# Host port of the TimescaleDB sidecar (POSTGRES_PORT, default 5432).
+postgres_port() {
+  local v="${POSTGRES_PORT:-}"
+  [ -n "$v" ] || v="$(env_value POSTGRES_PORT)"
+  printf '%s' "${v:-5432}"
+}
+
+# Map a gateway name → its host-facing URL. For the LOCAL gateway an exported
+# IGNITION_URL wins (the same override scan.sh honours); test and production
+# always follow their port variable.
+gateway_url() {
+  local port
+  port="$(gateway_port "${1:-local}")" || return 1
+  if [ "${1:-local}" = "local" ] && [ -n "${IGNITION_URL:-}" ]; then
+    printf '%s' "${IGNITION_URL%/}"
+    return 0
+  fi
+  printf 'http://localhost:%s' "$port"
 }
 
 # Map a gateway name → its docker container name (the value of

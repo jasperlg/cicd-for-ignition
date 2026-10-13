@@ -47,9 +47,11 @@ Once setup finishes you have three Ignition gateways and a TimescaleDB:
 
 Login with the credentials from `.env` (`GATEWAY_ADMIN_USERNAME_LOCAL/_TEST/_PRODUCTION`, default `admin / password`).
 
+Ports taken on your machine? Set `GATEWAY_PORT`, `TEST_GATEWAY_PORT`, `PRODUCTION_GATEWAY_PORT`, the three `*_GAN_PORT` values (8060-8062) or `POSTGRES_PORT` in `.env`; compose and the scripts follow them.
+
 > **Trial mode:** each gateway runs in 2-hour trial mode. Reset via *Platform → Licensing → Reset Trial* — unlimited and entirely legal for development.
 
-> **Stuck?** See [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md). Before opening a PR, run `scripts/validate.sh` (JSON / `.deployignore` / secret scan).
+> **Stuck?** See [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md). Before opening a PR, run `scripts/validate.sh` (the `lab06-ci.yml` checks; the linters run when installed).
 
 ## Lab structure
 
@@ -58,9 +60,9 @@ The lab is a warm-up plus three parts — [`exercises/lab.md`](./exercises/lab.m
 | Part | Topic | Gate |
 |---|---|---|
 | Warm-up | Deploy to test and production; find both db-connections **Faulted** while the pipeline is green | the diagnosis question |
-| 1 (±30 min) | Passwords → secret files → file-type secret provider → **referenced secrets**; fix test through a full PR → pipeline deploy | both connections Valid on test, fixed by the pipeline |
+| 1 (±30 min) | Passwords → secret files → file-type secret provider → **referenced secrets**; fix test through a full PR → pipeline deploy, then release with `lab06-v1.0.0` | both connections Valid on test and production, fixed by the pipeline |
 | 2 (±20 min) | A schema change as a golang-migrate `0002` up/down pair; `lab06-deploy.yml` migrates test **before** it ships | green run: migrate → ship → scan → verify |
-| 3 (±10 min) | Three spare `.modl` files deployed with headless license/cert acceptance in `services/modules.json` | all three modules **Running** on test, hands-free |
+| 3 (±25 min) | Three spare `.modl` files deployed with headless license/cert acceptance in `services/modules.json`, released with `lab06-v1.1.0` | all three modules **Running** on test and production, hands-free |
 
 Reference reading: [`docs/secrets-management.md`](./docs/secrets-management.md) and [`db-migration/MIGRATIONS.md`](./db-migration/MIGRATIONS.md).
 
@@ -86,7 +88,7 @@ labs/06-secrets-db-and-modules/
 ├── scripts/
 │   ├── setup.sh / teardown.sh / lib.sh / scan.sh   ← stack management (from Lab 04)
 │   ├── migrate.sh                      ← golang-migrate in Docker (up / down / version, --database)
-│   └── validate.sh                     ← local mirror of lab06-ci.yml, incl. the secret scan
+│   └── validate.sh                     ← the lab06-ci.yml checks, run locally (linters when installed)
 ├── projects/                           ← Perspective projects (bind-mounted into `local`)
 ├── gateways/                           ← test/production gateway state (gitignored bind mounts)
 ├── services/

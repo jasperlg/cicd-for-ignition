@@ -1,26 +1,33 @@
-# Mustry Academy — Lab 06 (secrets, migrations, modules & JARs)
+# Mustry Academy: Lab 06 (secrets, migrations, modules & JARs)
 # Three Ignition 8.3 gateways + one TimescaleDB with three logical databases:
 #
-#   gateway-local-development    http://localhost:8088   bind-mounts ./projects + ./services/config
-#                                          (working gateway — edits show
+#   gateway-local-development  http://localhost:8088   bind-mounts ./projects + ./services/config
+#                                          (working gateway: edits show
 #                                           up immediately on disk)
-#   gateway-test    http://localhost:8089   projects/ + config/ bind-mounted from
-#                                          ./gateways/test, populated by deploy.yml
-#   gateway-production   http://localhost:8090   projects/ + config/ bind-mounted from
-#                                          ./gateways/production, populated by deploy.yml
-#                                          (workflow_dispatch with target=production)
+#   gateway-test               http://localhost:8089   projects/ + config/ bind-mounted from
+#                                          ./gateways/test, populated by lab06-deploy.yml
+#                                          (push to main)
+#   gateway-production         http://localhost:8090   projects/ + config/ bind-mounted from
+#                                          ./gateways/production, populated by a
+#                                          lab06-v* tag (lab06-release.yml)
 #
-#   timescaledb    localhost:5432          databases: ignition_local_development, ignition_test,
+#   timescaledb                localhost:5432          databases: ignition_local_development, ignition_test,
 #                                          ignition_production (one per env), plus the
 #                                          read-only `reporting` login (db-init/)
+#
+# Host ports are the defaults above. Port taken on your machine? Override them
+# in .env (GATEWAY_PORT, TEST_GATEWAY_PORT, PRODUCTION_GATEWAY_PORT, the
+# *_GAN_PORT trio for 8060-8062, POSTGRES_PORT); scripts/ follow the same
+# variables. Container-side ports never change, so the deploy workflow (which
+# talks to the gateways by service name) is unaffected.
 #
 # Run it:
 #   cp .env.example .env
 #   scripts/setup.sh           # or:  docker compose up -d
 # Then:
 #   open http://localhost:8088   (local)
-#   open http://localhost:8089   (test — empty until the first deploy run)
-#   open http://localhost:8090   (production — empty until the first deploy run)
+#   open http://localhost:8089   (test: empty until the first deploy run)
+#   open http://localhost:8090   (production: empty until the first deploy run)
 #
 # NOTE (Part 1A of the lab): the database passwords below enter the containers
 # as ENVIRONMENT VARIABLES — anyone who can `docker inspect` reads them in
@@ -131,8 +138,8 @@ services:
     entrypoint: *ignition-entrypoint
     restart: unless-stopped
     ports:
-      - "8088:8088"
-      - "8060:8060"
+      - "${GATEWAY_PORT:-8088}:8088"
+      - "${GATEWAY_GAN_PORT:-8060}:8060"
     volumes:
       - gateway-local-data:/usr/local/bin/ignition/data
       - ./projects:/usr/local/bin/ignition/data/projects
@@ -167,7 +174,7 @@ services:
       timescaledb:
         condition: service_healthy
 
-  # --- test gateway: populated by deploy.yml (push to main) -------------------
+  # --- test gateway: populated by lab06-deploy.yml (push to main) ------------
   gateway-test:
     image: inductiveautomation/ignition:8.3.8
     container_name: lab06-gateway-test
@@ -186,8 +193,8 @@ services:
     entrypoint: *ignition-entrypoint
     restart: unless-stopped
     ports:
-      - "8089:8088"
-      - "8061:8060"
+      - "${TEST_GATEWAY_PORT:-8089}:8088"
+      - "${TEST_GATEWAY_GAN_PORT:-8061}:8060"
     volumes:
       - gateway-test-data:/usr/local/bin/ignition/data
       # projects/ and config/ are bind-mounted from ./gateways/test (gitignored,
@@ -223,7 +230,7 @@ services:
       timescaledb:
         condition: service_healthy
 
-  # --- production gateway: populated by deploy.yml (dispatch, target=production) ------------------
+  # --- production gateway: populated by a lab06-v* tag (lab06-release.yml) --------
   gateway-production:
     image: inductiveautomation/ignition:8.3.8
     container_name: lab06-gateway-production
@@ -242,8 +249,8 @@ services:
     entrypoint: *ignition-entrypoint
     restart: unless-stopped
     ports:
-      - "8090:8088"
-      - "8062:8060"
+      - "${PRODUCTION_GATEWAY_PORT:-8090}:8088"
+      - "${PRODUCTION_GATEWAY_GAN_PORT:-8062}:8060"
     volumes:
       - gateway-production-data:/usr/local/bin/ignition/data
       # Same pattern as test: deployed files are visible on the host under
@@ -289,7 +296,7 @@ services:
     container_name: lab06-timescaledb
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
       - ./db-init:/docker-entrypoint-initdb.d:ro

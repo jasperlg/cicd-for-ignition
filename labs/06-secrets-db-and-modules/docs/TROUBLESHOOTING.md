@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Quick fixes for the things that bite people during Labs A and B. Work top to bottom; most issues
+Quick fixes for the things that bite people during Lab 06. Work top to bottom; most issues
 are one of the first three.
 
 ## The stack won't start / `scripts/setup.sh` fails
@@ -10,8 +10,13 @@ are one of the first three.
 - **Not enough RAM.** Three gateways at 1 GB each + TimescaleDB + the runner need **≥ 8 GB free**.
   If gateways crash or never reach RUNNING, raise Docker's memory or bump the per-gateway limit in
   [`docker-compose.yaml`](../docker-compose.yaml).
-- **Port already in use.** 8088/8089/8090 (gateways) or 5432 (TimescaleDB) taken by something else.
-  Stop the other process or change the host port mappings in `docker-compose.yaml`.
+- **Port already in use.** 8088/8089/8090 (gateways), 8060/8061/8062 (Gateway Network) or 5432
+  (TimescaleDB) taken by something else. Stop the other process, or move this lab to free ports in
+  `.env` (`GATEWAY_PORT`, `TEST_GATEWAY_PORT`, `PRODUCTION_GATEWAY_PORT`, `GATEWAY_GAN_PORT`,
+  `TEST_GATEWAY_GAN_PORT`, `PRODUCTION_GATEWAY_GAN_PORT`, `POSTGRES_PORT`) and re-run
+  `scripts/setup.sh`. Compose and the scripts read the same variables; the deploy workflow talks
+  to the gateways by service name, so it needs no change. Remember to open the new port in your
+  browser.
 
 ## Every tag reads null on the local gateway
 
@@ -156,7 +161,8 @@ This lab uses GitHub Flow — the branch decides the gateway:
 
 ## The deploy ran but my change isn't visible
 
-- Are you looking at the right gateway? `local` = :8088, `test` = :8089, `production` = :8090.
+- Are you looking at the right gateway? `local` = :8088, `test` = :8089, `production` = :8090
+  (or the ports you set in `.env`).
 - Did the scan return HTTP 200? `scripts/scan.sh` pretty-prints the response with a
   `lastScanTimestamp`. Files on disk without a successful scan = gateway hasn't reloaded.
 - Module enable/disable (`services/modules.json`) needs a **restart**, not a scan:
@@ -165,7 +171,7 @@ This lab uses GitHub Flow — the branch decides the gateway:
 ## Validate before you push
 
 ```bash
-scripts/validate.sh    # JSON parse + .deployignore syntax + actionlint — mirrors CI
+scripts/validate.sh    # the lab06-ci.yml checks you can run locally (see its header)
 ```
 
 Still stuck? Ask your instructor or on Discord.
