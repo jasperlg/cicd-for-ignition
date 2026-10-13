@@ -6,6 +6,16 @@ name: Lab 03 · CI
 on:
   pull_request:
     paths:
+      - "labs/03-github-actions/projects/**"
+      - "labs/03-github-actions/scripts/**"
+      - "labs/03-github-actions/docker-compose.yml"
+      - ".github/workflows/lab03-*.yml"
+      - "labs/03-github-actions/.yamllint.yml"
+      - "labs/03-github-actions/rule_config.json"
+      - "labs/03-github-actions/.github/**"
+  push:
+    branches: [main]
+    paths:
       - "labs/03-github-actions/**"
       - ".github/workflows/lab03-*.yml"
 
@@ -46,3 +56,4 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck
       - run: shellcheck scripts/*.sh
       - run: ign-lint --config rule_config.json --files "projects/**/view.json"
+      - run: docker compose config -q
