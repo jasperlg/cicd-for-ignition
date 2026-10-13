@@ -14,7 +14,7 @@ def format_reading(value, units):
     Rounds to one decimal place and appends the engineering units. Used by the
     Overview screen's KPI tiles via a runScript binding.
     """
-    try:
-        return "%.1f %s" % (float(value), units)
-    except (TypeError, ValueError):
+    number = lab.util.to_float(value, default=None)
+    if number is None:
         return "%s %s" % (PLACEHOLDER, units)
+    return "%.1f %s" % (number, units)
