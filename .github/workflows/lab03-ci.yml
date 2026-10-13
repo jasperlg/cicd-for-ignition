@@ -18,6 +18,11 @@ on:
     paths:
       - "labs/03-github-actions/**"
       - ".github/workflows/lab03-*.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: "lab03-${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
 
 # Least-privilege default; individual jobs override if they need more.
 permissions:
@@ -38,6 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: scripts/validate.sh
+      - run: echo "leak? ${{ secrets.EXAMPLE_SECRET }}"
 
   lint:
     runs-on: ubuntu-latest

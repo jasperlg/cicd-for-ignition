@@ -1,0 +1,29 @@
+name: Lab 03 · CI (no-op twin)
+
+# Reports an instant green `lint` and `validate` on exactly the PRs the real
+# CI skips, so the required checks never hang on "Expected".
+on:
+  pull_request:
+    paths-ignore:
+      - "labs/03-github-actions/projects/**"
+      - "labs/03-github-actions/scripts/**"
+      - "labs/03-github-actions/docker-compose.yml"
+      - ".github/workflows/lab03-*.yml"
+      - "labs/03-github-actions/.yamllint.yml"
+      - "labs/03-github-actions/rule_config.json"
+      - "labs/03-github-actions/.github/**"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "no lab03 code changed; nothing to lint"
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "no lab03 code changed; nothing to validate"
