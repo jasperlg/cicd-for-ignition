@@ -139,3 +139,4 @@ Pick the row that matches your team most closely:
 This masterclass uses **GitHub Flow** for the cohort playground repo, because it's simple to teach and aligns with the labs' single-environment dev stack. We discuss trunk-based development in Day 2 when we get into CI quality gates.
 
 For *your team*, pick the one that fits your reality — not the one that sounds most sophisticated.
+# t
