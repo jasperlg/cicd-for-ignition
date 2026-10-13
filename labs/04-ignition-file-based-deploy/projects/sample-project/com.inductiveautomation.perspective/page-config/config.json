@@ -1,0 +1,8 @@
+{
+  "pages": {
+    "/": {
+      "title": "Hello",
+      "viewPath": "Hello"
+    }
+  }
+}

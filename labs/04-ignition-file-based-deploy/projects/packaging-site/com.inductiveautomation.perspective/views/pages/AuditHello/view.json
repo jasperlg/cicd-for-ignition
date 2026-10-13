@@ -1,0 +1,6 @@
+{
+  "custom": {},
+  "params": {},
+  "props": { "defaultSize": { "height": 600, "width": 800 } },
+  "root": { "type": "ia.container.coord", "version": 0 }
+}
