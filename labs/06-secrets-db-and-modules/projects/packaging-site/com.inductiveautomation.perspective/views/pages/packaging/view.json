@@ -70,7 +70,7 @@
                 "polling": {
                   "enabled": false
                 },
-                "queryString": "SELECT reason, minutes, area FROM downtime_log ORDER BY id DESC",
+                "queryString": "SELECT cause, minutes, area FROM downtime_log ORDER BY id DESC",
                 "returnFormat": "dataset"
               },
               "type": "query"
