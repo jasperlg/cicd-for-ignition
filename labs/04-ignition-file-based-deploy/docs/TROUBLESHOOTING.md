@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Quick fixes for the things that bite people during Labs A and B. Work top to bottom; most issues
+Quick fixes for the things that bite people during this lab. Work top to bottom; most issues
 are one of the first three.
 
 ## The stack won't start / `scripts/setup.sh` fails
@@ -10,8 +10,22 @@ are one of the first three.
 - **Not enough RAM.** Three gateways at 1 GB each + TimescaleDB + the runner need **≥ 8 GB free**.
   If gateways crash or never reach RUNNING, raise Docker's memory or bump the per-gateway limit in
   [`docker-compose.yaml`](../docker-compose.yaml).
-- **Port already in use.** 8088/8089/8090 (gateways) or 5432 (TimescaleDB) taken by something else.
-  Stop the other process or change the host port mappings in `docker-compose.yaml`.
+- **Port already in use** (`port is already allocated` from `docker compose up`). 8088/8089/8090
+  (gateways), 8060/8061/8062 (Gateway Network) or 5432 (TimescaleDB) is taken by something else.
+  Stop the other process, or pick free host ports in `.env` and re-run `scripts/setup.sh`:
+
+  | Variable | Default | What |
+  |---|---|---|
+  | `GATEWAY_PORT` | 8088 | local gateway web UI |
+  | `TEST_GATEWAY_PORT` | 8089 | test gateway web UI |
+  | `PRODUCTION_GATEWAY_PORT` | 8090 | production gateway web UI |
+  | `GATEWAY_GAN_PORT` / `TEST_GATEWAY_GAN_PORT` / `PRODUCTION_GATEWAY_GAN_PORT` | 8060 / 8061 / 8062 | Gateway Network |
+  | `POSTGRES_PORT` | 5432 | TimescaleDB |
+
+  Don't edit `docker-compose.yaml`: it reads these variables, and so do `scripts/setup.sh` and
+  `scripts/scan.sh`. The deploy workflows reach the gateways by compose service name on the
+  container port, so CI keeps working. Wherever the lab says `:8088` / `:8089` / `:8090`, use your
+  ports instead (and in `flint.config.json` if you use Flint).
 
 ## Every tag reads null on the local gateway
 
@@ -75,7 +89,7 @@ git update-index --no-skip-worktree <path>
   Fix it, then `docker compose up -d --force-recreate github-runner`.
 - `RUNNER_REPO_URL` in `.env` must point at **your fork**, not the upstream.
 - `RUNNER_GITHUB_PAT` in `.env` must be a real GitHub Personal Access Token with `repo` scope
-  (make one at github.com/settings/tokens → classic → tick `repo`; keep it — Labs 05 and 06 reuse it).
+  (make one at github.com/settings/tokens → classic → tick `repo`; keep it, Lab 06 reuses it).
 - In your fork: *Settings → Actions → Runners* should list it online with the `self-hosted, lab04`
   labels.
 - Don't add `EPHEMERAL` to the runner's environment in `docker-compose.yaml` — the image treats

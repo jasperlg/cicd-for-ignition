@@ -12,7 +12,7 @@ This is the **first lab that opens up the Ignition gateway itself**. Labs 02–0
 ## Prerequisites
 
 - Your fork of the course repo, `<you>/cicd-for-ignition`, with Actions enabled (the self-hosted runner registers against your fork, not the upstream)
-- A GitHub Personal Access Token with `repo` scope — the bundled runner uses it to auto-register against your fork. Create it at [github.com/settings/tokens](https://github.com/settings/tokens) (Generate new token → classic → tick `repo`) and put it in `.env` as `RUNNER_GITHUB_PAT` (the root `course-setup.sh` asks for it once and writes it there for you). You make it once here; **Labs 05 and 06 reuse the same token**. It never leaves `.env`.
+- A GitHub Personal Access Token with `repo` scope — the bundled runner uses it to auto-register against your fork. Create it at [github.com/settings/tokens](https://github.com/settings/tokens) (Generate new token → classic → tick `repo`) and put it in `.env` as `RUNNER_GITHUB_PAT` (the root `course-setup.sh` asks for it once and writes it there for you). You make it once here; **Lab 06 reuses the same token** (Lab 05 has no runner). It never leaves `.env`.
 - The [GitHub CLI](https://cli.github.com/) (`gh`), authenticated (`gh auth status`) — used to fork and clone the course repo
 - **≥ 8 GB free RAM for Docker** — three Ignition gateways each cap at 1 GB, plus TimescaleDB, the runner, and the usual Docker Desktop overhead
 - _Optional but recommended:_ pass the [preflight](../../preflight/) checks so unrelated env issues don't bite you mid-lab
@@ -36,7 +36,7 @@ cp -n .env.example .env   # no-op if course-setup.sh already created it
 scripts/setup.sh    # brings up the stack, waits for all three gateways, prints credentials
 ```
 
-> **One lab stack at a time:** every lab uses the same ports. Stop the previous lab's stack first (`docker compose down` in that lab's folder, e.g. `../03-github-actions`).
+> **One lab stack at a time:** every lab uses the same ports. Stop the previous lab's stack first (`docker compose down` in that lab's folder, e.g. `../03-github-actions`). Something else on your machine already holds a port? Set `GATEWAY_PORT`, `TEST_GATEWAY_PORT`, `PRODUCTION_GATEWAY_PORT`, `POSTGRES_PORT` (or the `*_GAN_PORT` ones) in `.env`; see [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md).
 
 Once setup finishes you have three Ignition gateways:
 

@@ -161,10 +161,34 @@ sibling of `services/config/`, *not* under it, so the deploy workflows (which `d
 
 ### `modules/`
 
-Gateway-level binaries. `.modl` files for each installed module.
+**Operational.** In 8.3 this folder holds per-module **data** directories that modules write at
+runtime (on the lab gateways: `modules/flint/`). It does not hold the module binaries. The `.modl`
+files live outside `data/`: the built-in modules ship in the image at
+`/usr/local/bin/ignition/user-lib/modules/`, and this lab mounts its third-party modules at
+`/third-party-modules` (`-Dignition.gateway.externalModulesFolder`).
 
-- **In git?** Generally **no**. Modules are large binary artifacts. Pin module *versions* in a manifest (e.g., a separate `module-versions.txt`); install modules separately via your runner setup or a custom Docker image.
-- For lab 04, the host bind mount on `modules.json` enables modules at startup; the gateway downloads/installs the matching `.modl` files automatically.
+- **In git?** **No** for `data/modules/`. Module binaries are large artifacts too: pin their
+  versions and install them through your image or runner setup. (This lab commits the four
+  third-party `.modl` files under `third-party-modules/` purely so a fresh clone boots offline.)
+- `modules.json` decides which of the available modules start; the binaries come from the folders above.
+
+### `gateway.xml`, `ignition.conf`, `redundancy.xml`, `commissioning.json`, `certificates/`, `email-profiles/`
+
+**Operational: set once, then owned by this gateway.**
+
+| Entry | What it is |
+|---|---|
+| `gateway.xml` | Web server settings: HTTP/HTTPS ports, Gateway Network port, thread pools |
+| `ignition.conf` | The Java service wrapper config: memory, JVM arguments (this lab sets them through the compose `command:` instead) |
+| `redundancy.xml` | This node's redundancy role (independent / master / backup) |
+| `commissioning.json` | The "already commissioned" marker (EULA, first-boot choices). Without it the gateway runs commissioning again |
+| `certificates/` | This gateway's TLS and trusted certificates |
+| `email-profiles/` | Runtime folder of the email notification feature (empty on the lab gateways) |
+
+Next to them the gateway and the container image keep their own dotfiles and backups
+(`.gateway.xml.bak`, `init.properties.bak`, `.container-init.conf`, empty `request` / `response`
+files). None of these belong in git: in a container they are baked by the image or set through
+environment variables and JVM arguments (Lab 05).
 
 ### `db/`
 
@@ -191,7 +215,11 @@ state. Note that gateway logs live *outside* `data/` entirely, at the install ro
 **Operational / generated.** Ignition's content-addressed blob store (`.resources/`, files named by
 SHA-256), 8.3 migration logs, and theme/font/icon digests. The gateway regenerates these; they churn
 constantly. All are excluded by [`.gitignore`](../.gitignore) — if you ever see them in `git status`,
-something is wrong with your ignore rules.
+something is wrong with your ignore rules. There are two `.resources/` folders, both inside trees
+you version: `config/resources/.resources/` and `projects/.resources/`. (One migration log,
+`services/config/resources/migration-log-202605211406.md`, is tracked for historical reasons: it
+records the seed's one-time 8.1 to 8.3 conversion. Every fresh gateway writes its own at
+commissioning; those stay ignored.)
 
 ### `config/resources/local/`
 
@@ -201,6 +229,10 @@ gateway's UUID (`com.inductiveautomation.opcua/uuid/`), and `local-system-proper
 tied to *this specific gateway instance* and must **not** be copied across gateways — promoting them
 would clone one gateway's identity onto another. Treat the `local` scope as belonging to the box,
 like operational state, even though it lives under `config/`.
+
+> **This lab deliberately tracks a throwaway seed identity** under `config/local` and
+> `resources/local` so fresh clones boot; `.gitignore` stops new churn. In a real repo, never
+> commit them.
 
 ## The two questions to ask
 

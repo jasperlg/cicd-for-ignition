@@ -68,10 +68,10 @@ echo "================================"
 echo ""
 echo "This script initializes the development environment:"
 echo "  - three Ignition 8.3 gateways:"
-echo "      local  http://localhost:8088   (your working gateway, bind-mounted from the repo)"
-echo "      test    http://localhost:8089   (populated by lab04-deploy.yml on push to main)"
-echo "      production   http://localhost:8090   (populated by lab04-release.yml on tag push)"
-echo "  - one TimescaleDB on localhost:5432 hosting ignition_local_development / ignition_test / ignition_production"
+echo "      local       $(gateway_url local)   (your working gateway, bind-mounted from the repo)"
+echo "      test        $(gateway_url test)   (populated by lab04-deploy.yml on push to main)"
+echo "      production  $(gateway_url production)   (populated by lab04-release.yml on tag push)"
+echo "  - one TimescaleDB on localhost:$(lab_port POSTGRES_PORT 5432) hosting ignition_local_development / ignition_test / ignition_production"
 echo ""
 
 
@@ -120,7 +120,7 @@ pf_persist_lab_gid
 # GitHub Personal Access Token in RUNNER_GITHUB_PAT (see .env). If it's still
 # the placeholder, the runner container will restart-loop with a 401 in its
 # logs — the gateways still come up fine, so this is only a heads-up. This is
-# the lab where you create the PAT; Labs 05 and 06 reuse the same token.
+# the lab where you create the PAT; Lab 06 reuses the same token.
 runner_pat_reminder() {
     local pat repo_url
     pat="$(env_value RUNNER_GITHUB_PAT)"
@@ -504,12 +504,12 @@ echo ""
 echo -e "${GREEN}Setup complete!${NC}"
 echo ""
 printf "Gateways:\n"
-printf "  %-8s  %-23s  user=%s  pass=%s\n" "local"  "http://localhost:8088"  "${ACTUAL_LOCAL_USER:-admin}"  "${ACTUAL_LOCAL_PASS:-(see .env)}"
-printf "  %-8s  %-23s  user=%s  pass=%s\n" "test"    "http://localhost:8089"  "${ACTUAL_TEST_USER:-admin}"    "${ACTUAL_TEST_PASS:-(see .env)}"
-printf "  %-8s  %-23s  user=%s  pass=%s\n" "production"   "http://localhost:8090"  "${ACTUAL_PRODUCTION_USER:-admin}"   "${ACTUAL_PRODUCTION_PASS:-(see .env)}"
+printf "  %-10s  %-23s  user=%s  pass=%s\n" "local"      "$(gateway_url local)"      "${ACTUAL_LOCAL_USER:-admin}"      "${ACTUAL_LOCAL_PASS:-(see .env)}"
+printf "  %-10s  %-23s  user=%s  pass=%s\n" "test"       "$(gateway_url test)"       "${ACTUAL_TEST_USER:-admin}"       "${ACTUAL_TEST_PASS:-(see .env)}"
+printf "  %-10s  %-23s  user=%s  pass=%s\n" "production" "$(gateway_url production)" "${ACTUAL_PRODUCTION_USER:-admin}" "${ACTUAL_PRODUCTION_PASS:-(see .env)}"
 echo ""
 echo "TimescaleDB:"
-echo "  Host: localhost  Port: 5432"
+echo "  Host: localhost  Port: $(lab_port POSTGRES_PORT 5432)"
 echo "  Databases: ignition_local_development, ignition_test, ignition_production"
 echo "  Username: ${ACTUAL_PG_USER:-ignition}  Password: ${ACTUAL_PG_PASS:-(see .env)}"
 echo ""
