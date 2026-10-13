@@ -7,6 +7,10 @@
     "/overview": {
       "title": "Lab 02",
       "viewPath": "pages/overview"
+    },
+    "/silo-detail": {
+      "title": "Silo Detail",
+      "viewPath": "pages/silo-detail"
     }
   },
   "sharedDocks": {}
