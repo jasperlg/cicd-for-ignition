@@ -24,7 +24,7 @@ concurrency:
   group: "lab03-${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
-# Least-privilege default; individual jobs override if they need more.
+# Least-privilege default; jobs override if they need more.
 permissions:
   contents: read
 
