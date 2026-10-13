@@ -49,3 +49,4 @@ if [ "$fail" -ne 0 ]; then
 fi
 
 echo "✓ all project files valid"
+# audit test
