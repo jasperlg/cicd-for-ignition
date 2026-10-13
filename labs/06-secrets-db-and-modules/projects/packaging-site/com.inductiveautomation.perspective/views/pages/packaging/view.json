@@ -52,6 +52,37 @@
             "type": "ia.display.label"
           }
         ]
+      },
+      {
+        "meta": {
+          "name": "DowntimeTable"
+        },
+        "position": {
+          "grow": 1,
+          "shrink": 1
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "database": "TimescaleDB",
+                "fallbackDelay": 2.5,
+                "polling": {
+                  "enabled": false
+                },
+                "queryString": "SELECT reason, minutes, area FROM downtime_log ORDER BY id DESC",
+                "returnFormat": "dataset"
+              },
+              "type": "query"
+            }
+          }
+        },
+        "props": {
+          "style": {
+            "margin": "16px"
+          }
+        },
+        "type": "ia.display.table"
       }
     ],
     "meta": {
