@@ -14,6 +14,13 @@
 #   timescaledb      localhost:5432          databases: ignition_local_development, ignition_test,
 #                                                       ignition_production (one per env)
 #
+# Host ports are the defaults above. Override any of them in .env
+# (GATEWAY_PORT, TEST_GATEWAY_PORT, PRODUCTION_GATEWAY_PORT, POSTGRES_PORT and
+# the *_GAN_PORT ones) when something else on your machine already uses them;
+# scripts/setup.sh and scripts/scan.sh follow the same variables. Containers
+# reach each other on the compose network by service name, so the deploy
+# workflows are unaffected.
+#
 # Run it:
 #   cp .env.example .env
 #   scripts/setup.sh           # or:  docker compose up -d
@@ -111,8 +118,8 @@ services:
     entrypoint: *ignition-entrypoint
     restart: unless-stopped
     ports:
-      - "8088:8088"
-      - "8060:8060"
+      - "${GATEWAY_PORT:-8088}:8088"
+      - "${GATEWAY_GAN_PORT:-8060}:8060"
     volumes:
       - ignition-local-data:/usr/local/bin/ignition/data
       - ./projects:/usr/local/bin/ignition/data/projects
@@ -158,8 +165,8 @@ services:
     entrypoint: *ignition-entrypoint
     restart: unless-stopped
     ports:
-      - "8089:8088"
-      - "8061:8060"
+      - "${TEST_GATEWAY_PORT:-8089}:8088"
+      - "${TEST_GATEWAY_GAN_PORT:-8061}:8060"
     volumes:
       - ignition-test-data:/usr/local/bin/ignition/data
       # projects/ and config/ are bind-mounted from ./gateways/test (gitignored,
@@ -209,8 +216,8 @@ services:
     entrypoint: *ignition-entrypoint
     restart: unless-stopped
     ports:
-      - "8090:8088"
-      - "8062:8060"
+      - "${PRODUCTION_GATEWAY_PORT:-8090}:8088"
+      - "${PRODUCTION_GATEWAY_GAN_PORT:-8062}:8060"
     volumes:
       - ignition-production-data:/usr/local/bin/ignition/data
       # Same pattern as test: deployed files are visible on the host under
@@ -248,7 +255,7 @@ services:
     container_name: lab04-timescaledb
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
       - ./db-init:/docker-entrypoint-initdb.d:ro
@@ -274,7 +281,7 @@ services:
   # Personal Access Token (RUNNER_GITHUB_PAT, must have `repo` scope). The
   # image uses that PAT to fetch its own short-lived registration token, so
   # you never mint one by hand. This is the first lab where you create the
-  # PAT; Labs 05 and 06 reuse the same token.
+  # PAT; Lab 06 reuses the same token.
   #
   # The runner sits on the lab's compose network, so it reaches the gateways by
   # service name (ignition-local, ignition-test, ignition-production) — see the

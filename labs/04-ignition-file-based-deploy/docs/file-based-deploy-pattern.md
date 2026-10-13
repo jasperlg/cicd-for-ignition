@@ -18,7 +18,7 @@ Reference reading for the deploy part of the lab. The complete pattern in five s
 3. **Prune** the working tree per `.deployignore` — exclude lab files, READMEs, secrets, anything that shouldn't reach the gateway.
 4. **Ship** the files into the target gateway's container. How depends on the gateway:
    - **`local`** uses a bind mount on `./projects/` and `./services/config/`, so the files are already on disk inside the gateway. No copy step needed.
-   - **`test` / `production`** bind-mount `./gateways/test/{projects,config}` and `./gateways/production/{projects,config}` (gitignored, created by `setup.sh`); the rest of their `data/` stays in named volumes. The runner is itself a container and doesn't share those host paths, so the workflows still `docker exec ... rm -rf` to wipe the destination (`projects/` and `config/`, sparing the five entries `.deployignore` protects — `config/local/`, `config/resources/local/`, and the gateway-owned internal identity by name: `config/resources/core/ignition/user-source/default/`, `user-source/opcua-module/`, and `identity-provider/default/`; other user sources and identity providers in those dirs are repo-owned and ARE wiped), then `docker cp` the working tree in. This wipe-then-copy gives you "deleted in repo → deleted in gateway" semantics that `rsync --delete` would have given you with a bind mount. The bind mounts pay off on the verification side: `ls gateways/test/projects` on the host shows exactly what a deploy shipped.
+   - **`test` / `production`** bind-mount `./gateways/test/{projects,config}` and `./gateways/production/{projects,config}` (gitignored, created by `setup.sh`); the rest of their `data/` stays in named volumes. The runner is itself a container and doesn't share those host paths, so the workflows still `docker exec ... rm -rf` to wipe the destination (`projects/` and `config/`, sparing seven entries: the six `.deployignore` protects, `config/local/`, `config/resources/local/`, the gateway-owned internal identity by name: `config/resources/core/ignition/user-source/default/`, `user-source/opcua-module/` and `identity-provider/default/`, plus the gateway's own scan token `config/resources/core/ignition/api-token/`; and the gateway's blob store `config/resources/.resources/`, which is gitignored and must not be deleted under a running gateway (logins fail until a scan or restart rebuilds it). Other user sources and identity providers in those dirs are repo-owned and ARE wiped), then `docker cp` the working tree in. This wipe-then-copy gives you "deleted in repo → deleted in gateway" semantics that `rsync --delete` would have given you with a bind mount. The bind mounts pay off on the verification side: `ls gateways/test/projects` on the host shows exactly what a deploy shipped.
 5. **Trigger** a project + config scan via `POST /data/api/v1/scan/{projects,config}` with that gateway's API key. On the first deploy to a fresh gateway, the workflows restart it once instead: it booted before its config mode (`test` / `production`) was on disk, and Ignition picks its deployment mode at boot. A 401 fails fast (wrong key: check the environment's `IGNITION_API_KEY` secret); a 403 (first-boot commissioning reset the permissions) gets one restart and a retry, because the gateway reads `security-properties` at boot. Every later deploy hot-scans with no restart.
 
 That's it. No SSH, no SCP, no remote shell. The gateway has an HTTP API that picks up disk changes.
@@ -73,14 +73,11 @@ File-based shines when you're iterating on a project — Perspective views, scri
 
 Most mature Ignition deployments end up using **both**: image-based for the gateway+modules baseline (the image you'd boot a fresh server with), file-based for project content (what changes daily). Lab 04 covers file-based; the image-based companion lab covers the other half.
 
-## API key scopes
+## API key permissions
 
-Each gateway has its own API key. At minimum each one needs:
+Each gateway has its own API key. Ignition 8.3 has no per-endpoint scopes such as "Project Scan" or "Config Scan": a key gets **security levels**, and each API area checks them against a permission list in `security-properties`. Both scan endpoints (`POST /data/api/v1/scan/projects` and `.../scan/config`) are gated by **Gateway Write Permissions**. In this lab the keys carry the `APIToken` levels, and the committed `security-properties` lists those levels in the gateway read and write permissions.
 
-- **Project Scan** — to authorize `POST /data/api/v1/scan/projects`
-- **Config Scan** — to authorize `POST /data/api/v1/scan/config`
-
-You'll see other scopes in the API Keys UI (Backup, Gateway Network, Tag Read/Write, …) — *don't grant them*. The deploy runner shouldn't be able to back up the gateway or write tags. Principle of least privilege.
+Least privilege still applies: give the deploy key its own level and add that level only where the scan needs it. Don't give it `Administrator` or levels that also unlock backups, tag writes or the Designer. The deploy runner shouldn't be able to back up the gateway or write tags.
 
 In the lab the keys live in `.env` (for manual scripts) as `IGNITION_API_KEY_LOCAL/_TEST/_PRODUCTION` — generated per clone by `scripts/setup.sh`, never committed — and as environment-scoped GitHub secrets named `IGNITION_API_KEY` on the `lab04-gateway-test` / `lab04-gateway-production` environments (for CI). A key belongs in exactly two places: the secret store that uses it and the gateway that checks its hash — never in git, where it would be a working credential in every clone and every fork, forever (history doesn't forget). If the same runner ever needs more capability (e.g. take a backup before deploy), generate a separate key for that — don't reuse.
 
@@ -89,25 +86,24 @@ In the lab the keys live in `.env` (for manual scripts) as `IGNITION_API_KEY_LOC
 Three patterns, in increasing order of operational maturity:
 
 1. **`git revert` / `git reset` + re-deploy.** The deploys are idempotent; reverting a bad PR and pushing again restores the test gateway. Most cohorts start here. Works for most cases.
-2. **Tagged deploys + re-deploy a known-good tag.** This lab's `lab04-release.yml` is built for this: `workflow_dispatch` takes a tag as input, so re-deploying `lab04-v0.1.0` to production is two clicks in the GitHub UI. Lab 05 extends this pattern across multiple gateways.
+2. **Tagged deploys + re-deploy a known-good tag.** This lab's `lab04-release.yml` is built for this: `workflow_dispatch` takes a tag as input, so re-deploying `lab04-v0.1.0` to production is two clicks in the GitHub UI. Lab 07 extends this pattern across multiple gateways.
 3. **Snapshot before deploy.** A mature workflow would take a `gwbk` of the gateway *before* copying, so rollback is "restore the backup." This lab's workflows do **not** do this (their steps are checkout → verify → prune → `rm -rf` + `docker cp` → scan → smoke-check); it's the heaviest pattern, only worth it for high-stakes deploys, and is left as a stretch. Lab 07 covers gateway backups properly.
 
 Lab 04 ships patterns 1 and 2 (the latter as a hand-cranked workflow_dispatch); pattern 3 is left as a stretch.
 
 ## Self-hosted runner topology
 
-For the file-based pattern to work, the runner needs **a way to write to the target gateway's `data/` directory**. There are three realistic topologies; this lab uses two of them across its three gateways.
+For the file-based pattern to work, the runner needs **a way to write to the target gateway's `data/` directory**. There are three realistic topologies. This lab's CI uses one of them (C); its `local` gateway shows the bind-mount idea behind A without any runner.
 
-### A) Runner on host, gateway bind-mounts from host (used for `local`)
+### A) Runner on the gateway host, gateway bind-mounts from that host
 
 ```
-host
-├── lab04-runner       ← runner has the repo working tree
-└── lab04-ignition-local ← gateway bind-mounts ./projects + ./services/config
-   from the same repo path
+gateway host
+├── runner                 ← runner checks the repo out into a working tree
+└── ignition gateway       ← bind-mounts that tree's projects/ + config/
 ```
 
-Cheap, no network, no auth headaches. Edit a file in the repo, hit scan, done. This is what `local` does. It's the right pattern for fast inner-loop iteration.
+Cheap, no network, no auth headaches: the checkout *is* the gateway's disk, so the deploy is checkout + scan. In this lab, `local` works the same way without a runner: it bind-mounts `./projects` and `./services/config` from your clone, so you edit, hit scan, done. Local sits outside the CI flow entirely.
 
 ### B) Runner on host, gateway on remote VM, NFS
 

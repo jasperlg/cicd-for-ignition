@@ -36,13 +36,24 @@ fi
 # setup.sh and validation in scan.sh.
 LAB_GATEWAYS=(local test production)
 
+# Resolve a host port: the variable from the environment wins, then .env,
+# then the default. docker-compose.yaml maps the same variables, so the
+# scripts always poll the ports the containers actually publish.
+#   lab_port GATEWAY_PORT 8088
+lab_port() {
+  local name="$1" default="$2" v
+  v="${!name:-}"
+  [ -n "$v" ] || v="$(env_value "$name")"
+  printf '%s' "${v:-$default}"
+}
+
 # Map a gateway name → its host-facing URL.
 gateway_url() {
   case "${1:-local}" in
-    local) printf 'http://localhost:8088' ;;
-    test)   printf 'http://localhost:8089' ;;
-    production)  printf 'http://localhost:8090' ;;
-    *)     return 1 ;;
+    local)      printf 'http://localhost:%s' "$(lab_port GATEWAY_PORT 8088)" ;;
+    test)       printf 'http://localhost:%s' "$(lab_port TEST_GATEWAY_PORT 8089)" ;;
+    production) printf 'http://localhost:%s' "$(lab_port PRODUCTION_GATEWAY_PORT 8090)" ;;
+    *)          return 1 ;;
   esac
 }
 

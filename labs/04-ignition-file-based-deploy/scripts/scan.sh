@@ -16,9 +16,11 @@
 #   scripts/scan.sh production    # production gateway
 #
 # Gateways:
-#   local        http://localhost:8088   (default — student's bind-mounted gateway)
+#   local        http://localhost:8088   (default, the student's bind-mounted gateway)
 #   test         http://localhost:8089   (lab04-deploy.yml target)
 #   production   http://localhost:8090   (lab04-release.yml target)
+#   (default host ports; GATEWAY_PORT / TEST_GATEWAY_PORT /
+#   PRODUCTION_GATEWAY_PORT in the environment or .env override them)
 #
 # Env (override the gateway defaults when needed):
 #   IGNITION_URL          full URL; if set, wins over the gateway preset
@@ -45,7 +47,7 @@ gateway="local"
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
-      sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     local|test|production)
@@ -72,8 +74,8 @@ IGNITION_URL="${IGNITION_URL:-$(gateway_url "$gateway")}"
 load_api_key_from_env "$gateway"
 if [ -z "${IGNITION_API_KEY:-}" ]; then
   echo "ERROR: IGNITION_API_KEY is not set (env or .env)." >&2
-  echo "Looked for IGNITION_API_KEY_${gateway^^} and IGNITION_API_KEY in .env." >&2
-  echo "Generate one in the gateway UI at $IGNITION_URL — Platform → Security → API Keys → Create API Key" >&2
+  echo "Looked for IGNITION_API_KEY_$(printf '%s' "$gateway" | tr '[:lower:]' '[:upper:]') and IGNITION_API_KEY in .env." >&2
+  echo "Run scripts/setup.sh: it generates one key per gateway into .env." >&2
   exit 2
 fi
 

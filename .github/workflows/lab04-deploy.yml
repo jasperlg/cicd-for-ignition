@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Check out repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           clean: true
 
@@ -136,6 +136,10 @@ jobs:
         #     token, generated per clone by setup.sh and never committed (a
         #     committed token would be a working credential in every fork).
         #     Wiping it would revoke the very key this workflow scans with.
+        #   config/resources/.resources/ — the running gateway's content-addressed
+        #     blob store (gitignored, so never in the payload). Deleting it under
+        #     a live gateway breaks every login (NoSuchFileException on a blob)
+        #     until a successful config scan or a restart rebuilds it.
         # Wiping any of those would strip state nothing in the checkout can
         # restore. Everything else under config/ IS repo-owned and is wiped
         # and copied fresh — including security-properties (permission policy)
@@ -150,7 +154,7 @@ jobs:
               ! -name local ! -name resources -exec rm -rf {} +
             if [ -d '$GATEWAY_DATA_PATH/config/resources' ]; then
               find '$GATEWAY_DATA_PATH/config/resources' -mindepth 1 -maxdepth 1 \
-                ! -name local ! -name core -exec rm -rf {} +
+                ! -name local ! -name core ! -name .resources -exec rm -rf {} +
             fi
             if [ -d '$GATEWAY_DATA_PATH/config/resources/core' ]; then
               find '$GATEWAY_DATA_PATH/config/resources/core' -mindepth 1 -maxdepth 1 \
