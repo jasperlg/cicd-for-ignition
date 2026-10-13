@@ -1,5 +1,7 @@
 {
-  "custom": {},
+  "custom": {
+    "csvLine": "pump,3,ok"
+  },
   "params": {},
   "props": {},
   "root": {
@@ -19,9 +21,18 @@
         "position": {
           "basis": "300px"
         },
-        "props": {
-          "text": "pump,3,ok"
-        }
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.csvLine"
+              }
+            }
+          }
+        },
+        "props": {}
       },
       {
         "type": "ia.display.label",
@@ -36,7 +47,7 @@
             "binding": {
               "type": "property",
               "config": {
-                "path": "../CsvInput.props.text"
+                "path": "view.custom.csvLine"
               },
               "transforms": [
                 {
