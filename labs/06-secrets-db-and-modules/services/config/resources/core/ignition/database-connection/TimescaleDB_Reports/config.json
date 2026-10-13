@@ -13,7 +13,7 @@
   "password": {
     "type": "Referenced",
     "data": {
-      "providerName": "LabInternal",
+      "providerName": "LabSecrets",
       "secretName": "REPORTING_PASSWORD"
     }
   },
