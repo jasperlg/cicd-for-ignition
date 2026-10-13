@@ -60,7 +60,10 @@ docker compose up -d
 echo ""
 
 # ---- wait -----------------------------------------------------------------
-URL="http://localhost:8088"
+# Same host port the compose file publishes (GATEWAY_PORT in .env, default 8088).
+# An exported GATEWAY_PORT wins over .env, exactly like it does for compose.
+GATEWAY_PORT="${GATEWAY_PORT:-$(grep -E '^GATEWAY_PORT=' .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)}"
+URL="http://localhost:${GATEWAY_PORT:-8088}"
 echo "${GREEN}Waiting for the gateway at $URL to become RUNNING (cold start is slow)...${NC}"
 attempts=0
 max_attempts=120   # ~4 minutes

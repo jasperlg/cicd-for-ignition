@@ -47,12 +47,17 @@ scripts/setup.sh        # boots one Ignition gateway, waits for RUNNING, prints 
 # open http://localhost:8088  → log in with the .env credentials
 ```
 
+Port 8088 already taken on your machine? Set `GATEWAY_PORT` in `.env` (for example
+`GATEWAY_PORT=8090`) and re-run `scripts/setup.sh`; it prints the matching URL.
+
 Before opening any PR, run the same checks CI runs — both are gateway-free and finish in
 seconds:
 
 ```bash
 scripts/validate.sh                                          # every project file: valid JSON / parseable Python
-python3 -m venv .venv && source .venv/bin/activate           # bare pip fails on Homebrew/Ubuntu-24.04 Python (PEP 668)
+python3.12 -m venv .venv && source .venv/bin/activate   # Linux: python3 if it is 3.10-3.13
+# (ign-lint needs Python 3.10-3.13: macOS's python3 is 3.9, so name python3.12;
+#  the venv also avoids pip's PEP 668 error on Homebrew/Ubuntu 24.04 Python)
 pip install ign-lint==0.6.1
 ign-lint --config rule_config.json --files "projects/**/view.json"   # Ignition-native linting of the Perspective views
 ```
@@ -134,7 +139,7 @@ A single Ignition 8.3 gateway. Two things to understand about how it's wired:
 services:
   ignition:
     image: inductiveautomation/ignition:8.3.8
-    ports: ["8088:8088"]
+    ports: ["${GATEWAY_PORT:-8088}:8088"]                  # host port from .env
     volumes:
       - ignition-data:/usr/local/bin/ignition/data        # gateway-owned, self-generated, not in git
       - ./projects:/usr/local/bin/ignition/data/projects   # the one thing you edit

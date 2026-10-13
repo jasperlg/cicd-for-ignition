@@ -8,7 +8,8 @@
 # bind-mounted project files; you have to trigger a scan (or restart it).
 #
 # One-time setup: the scan API needs an API key whose security level has
-# gateway write permission. In the gateway UI (http://localhost:8088):
+# gateway write permission. In the gateway UI (http://localhost:8088, or your
+# GATEWAY_PORT):
 #   1. Platform → Security → Levels: add a custom level, e.g. "Scan"
 #   2. Platform → Security → General Settings: add that level to
 #      Gateway Write Permissions (the scan routes check write permission)
@@ -32,7 +33,7 @@ if [ -f .env ]; then
   set +a
 fi
 
-URL="${IGNITION_URL:-http://localhost:8088}"
+URL="${IGNITION_URL:-http://localhost:${GATEWAY_PORT:-8088}}"
 KEY="${IGNITION_API_KEY:-}"
 
 if [ -z "$KEY" ]; then

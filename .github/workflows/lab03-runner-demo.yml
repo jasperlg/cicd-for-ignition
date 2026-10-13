@@ -3,11 +3,13 @@
 # locally (see labs/03-github-actions/docs/self-hosted-runners.md), so it only
 # executes once your runner is up and listening. Trigger it by hand:
 #
-#   gh workflow run lab03-runner-demo.yml   # then watch the docker logs terminal
+#   gh workflow run lab03-runner-demo.yml
+#   gh run view --log                        # pick the run; look for "ran on <hostname>"
 #
-# Manual-only — no push/PR trigger — so it never blocks a merge and never runs
+# Manual-only (no push/PR trigger), so it never blocks a merge and never runs
 # until you deliberately dispatch it. Deliberately a single echo: the proof is
-# the hostname in the log — your container's, not a GitHub machine's.
+# the hostname in the run log, which matches your runner container's ID in
+# `docker ps`, not a GitHub machine's name.
 #
 # No `defaults.run.working-directory` here, unlike lab03-ci.yml: the job never
 # checks out the repo, so labs/03-github-actions doesn't exist on the runner.

@@ -13,7 +13,8 @@
 #   cp .env.example .env
 #   scripts/setup.sh              # or:  docker compose up -d
 # Then:
-#   open http://localhost:8088   (log in with the .env credentials)
+#   open http://localhost:8088   (log in with the .env credentials;
+#                                 GATEWAY_PORT in .env changes the host port)
 
 services:
   ignition:
@@ -38,7 +39,8 @@ services:
     entrypoint: ["/bin/sh", "-c", 'umask 0002 && exec docker-entrypoint.sh "$@"', "--"]
     restart: unless-stopped
     ports:
-      - "8088:8088"
+      # Host port from GATEWAY_PORT in .env (default 8088); the container side stays 8088.
+      - "${GATEWAY_PORT:-8088}:8088"
     volumes:
       # Gateway-owned config + runtime state: self-generated, never in the repo.
       - ignition-data:/usr/local/bin/ignition/data

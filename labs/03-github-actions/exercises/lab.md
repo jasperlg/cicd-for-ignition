@@ -20,7 +20,7 @@ automated, file-based deployment is the subject of Labs 04–05. The goal here i
 
 - **Part 1 — Linters as your safety net:** yamllint, shellcheck, actionlint, **ign-lint**, `scripts/validate.sh`
 - **Part 2 — GitHub Actions:** build `lab03-ci.yml`, path filters, required check
-- **Part 3 — Self-hosted runners:** a look ahead (short demo) — hands-on comes in Labs 04–05
+- **Part 3 — Self-hosted runners:** a look ahead (short demo); hands-on comes in Labs 04 and 06
 
 ## Setup
 
@@ -39,7 +39,9 @@ scripts/setup.sh        # boots one Ignition gateway, waits for RUNNING, prints 
 > collision is left in deliberately: a port is a machine-wide resource, and two gateways
 > can't share one. Tear Lab 02 down first (its state survives in its Docker volume):
 > `cd ../02-branching-and-prs && scripts/teardown.sh`, then `cd ../03-github-actions` and
-> re-run `scripts/setup.sh`.
+> re-run `scripts/setup.sh`. Or, if something else on your machine owns port 8088, give this
+> gateway another host port: set `GATEWAY_PORT=8090` (any free port) in `.env` and re-run
+> `scripts/setup.sh`; it prints the matching URL.
 
 Install the linters:
 
@@ -56,7 +58,7 @@ sudo mv actionlint /usr/local/bin/
 
 # both platforms — venv on Python 3.10+ (macOS: python3.12 · Linux: python3),
 # which also keeps the pinned tools out of your system Python:
-python3.12 -m venv .venv && source .venv/bin/activate   # Linux: python3 (already 3.10+)
+python3.12 -m venv .venv && source .venv/bin/activate   # Linux: python3 if it is 3.10-3.13
 pip install yamllint==1.35.1 ign-lint==0.6.1            # ign-lint needs Python 3.10+
 ```
 
@@ -125,7 +127,8 @@ and [`docs/self-hosted-runners.md`](../docs/self-hosted-runners.md).
 
 **Goal:** run yamllint, shellcheck, actionlint, **ign-lint**, and `scripts/validate.sh`
 against a real Ignition project; read each tool's output; decide whether to fix,
-configure away, or ignore each finding; and tune `.yamllint.yml` to fit the project.
+configure away, or ignore each finding; and read how `.yamllint.yml` documents a rule it
+mutes on purpose.
 
 Every linter is a cheap, fast check that catches one class of bug. The point isn't to
 run them all — it's to know which one would have caught yesterday's regression.
@@ -187,8 +190,8 @@ traversal), `PylintScriptRule`, and the rest. The clean `lab-project` passes ign
 
 ### You do
 
-Hunt every planted issue, fix them all, then make the config your own. (The step numbers
-match the assignment slides.)
+Hunt every planted issue and fix them all. (The step numbers match the assignment slides:
+steps 1-3 on "Seed the broken state", steps 4-7 on "Fix everything".)
 
 1. Run `scripts/seed.sh` for a fresh broken state (reset first if your tree still carries
    We-do fixes: `git restore . && rm -f ../../.github/workflows/lab03-example.yml`).
@@ -199,13 +202,19 @@ match the assignment slides.)
    each rule exists before fixing anything.
 4. Fix every finding. For each, record: *what the tool flagged*, *why your fix is correct*,
    and *what class of production bug it would catch*. That includes the seeded
-   `lab03-example.yml`: bump it to `actions/checkout@v4`, don't delete it.
+   `lab03-example.yml`: bump it to the current major, `actions/checkout@v7`, don't delete it.
 5. Re-run every linter until each is silent and `scripts/validate.sh` exits 0.
 6. Open `.yamllint.yml` and read the comment on `line-length: disable`: a finding you
    configure away rather than fix, with the reason written down so the next reviewer sees
    judgment, not laziness. Nothing to change here.
-7. Commit. Your end state should be a clean tree: every linter silent, `scripts/validate.sh`
-   exits 0.
+7. Commit. `git add -A` matters here: the seeded `lab03-example.yml` is a new, untracked
+   file, so `git commit -am` alone would leave it behind.
+
+   ```bash
+   git add -A && git commit -m "fix: part 1 linter findings"
+   ```
+
+   Your end state should be a clean tree: every linter silent, `scripts/validate.sh` exits 0.
 
 > **No delete-cheats.** Don't silence ign-lint by deleting the Clock, the Kiln binding,
 > or the Power tile — only the *reference*, the *poll rate*, and the *name* were broken, so
@@ -290,8 +299,10 @@ The repo ships the **finished** workflow — it's the answer key, and your fork 
 Set it aside first, so you're building your own rather than admiring ours (you'll compare
 against it in step 4).
 
-The quickest path is `scripts/prepare-part2.sh` — it prints each action as it runs, does the
-`git mv`, and scaffolds a bare two-job skeleton (`validate` + `lint`, each just `checkout` plus
+### We-do (step 0): build the workflow
+
+The quickest path is `scripts/prepare-part2.sh`: it prints each action as it runs, does the
+`git mv`, and scaffolds a bare two-job skeleton (`lint` + `validate`, each just `checkout` plus
 TODO markers) into a fresh `.github/workflows/lab03-ci.yml` at the repo root:
 
 ```bash
@@ -308,7 +319,8 @@ git commit -m "chore: set aside the reference workflow"
 ```
 
 Either way, `.github/workflows/lab03-ci.yml` (repo root) is now yours to build out — filling
-in the TODOs, not copying the reference. Start with the gateway-free validator job:
+in the TODOs, not copying the reference. Start with the gateway-free `validate` job (the
+`lint` job below it keeps its TODOs for now):
 
 ```yaml
 name: Lab 03 · CI
@@ -327,11 +339,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: scripts/validate.sh
 ```
 
-Open a PR, watch it run, read the logs together — each step is its own collapsible block.
+Watch it run on a pull request. Push a **throwaway branch**, open the PR, watch it, and close
+it **unmerged**: your local `main` keeps the commit, and step 2 pushes `main` in one go.
+(Merging this PR now would put a merge commit on GitHub's `main` that your local `main`
+doesn't have, so step 2's `git push origin main` would be rejected as non-fast-forward.)
+
+```bash
+git add -A && git commit -m "ci: validate job"            # on your local main
+git branch ci/first-run && git push -u origin ci/first-run   # a throwaway branch, same commit
+gh pr create --head ci/first-run --fill
+sleep 15 && gh pr checks ci/first-run --watch              # checks take a few seconds to register
+gh pr close ci/first-run --delete-branch                   # close it unmerged
+```
+
+Read the logs together on the PR's **Checks** tab: each step is its own collapsible block.
 Then flesh out the `lint` job with the Part 1 linters, including `ign-lint`:
 
 ```yaml
@@ -339,8 +364,8 @@ Then flesh out the `lint` job with the Part 1 linters, including `ign-lint`:
     runs-on: ubuntu-latest
     timeout-minutes: 10   # this job installs tools; give it more headroom than validate
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install yamllint==1.35.1 ign-lint==0.6.1
@@ -360,8 +385,10 @@ you go:
 - **`permissions: contents: read`** — least privilege; the default `GITHUB_TOKEN` is too broad.
 - **`GITHUB_TOKEN`** — auto-provisioned per job, scoped to the repo, expires when the job ends.
 - **Secrets vs variables** — secrets are encrypted and masked (`***`) in logs; variables
-  are plain text. Live-add an `EXAMPLE_SECRET` and confirm it's masked.
-- **Job ids are check names** — branch protection (You-do step 3) matches status checks
+  are plain text. Live-add an `EXAMPLE_SECRET` from the terminal and confirm it's masked:
+  `gh secret set EXAMPLE_SECRET --body "hunter2" -R "$(gh repo set-default --view)"`. The
+  `-R` names the repo explicitly: with more than one remote, `gh secret set` refuses to guess.
+- **Job ids are check names** — the ruleset on `main` (You-do step 3) matches status checks
   by name, and a job's name *is* its id (`lint`, `validate`) unless you override it with
   `name:`. Rename a job later and any required check pointing at the old name waits forever.
 - **`timeout-minutes`** — a hung job otherwise runs (and bills) for up to 6 hours;
@@ -370,7 +397,8 @@ you go:
 
 ### You do
 
-Make the workflow yours.
+Make the workflow yours. (The step numbers match the assignment slides: step 0 was the
+We-do above, then steps 1-4 below, with 3a-3d inside step 3.)
 
 **1 — Path filters.** Narrow the `paths:` filter from "anything in this lab" to the files
 the checks actually read, so the workflow skips docs-only PRs. Add a `push` backstop on
@@ -408,11 +436,12 @@ aside).
 This catches Compose-level issues yamllint can't see — undefined services, port-string
 typos, malformed environment maps.
 
-**Ship both, then prove the filter.** Commit and push to `main` (it isn't protected yet).
-The push backstop runs `lint` and `validate` once — and a check has to have run recently
-before step 3's branch protection lets you pick it. Then branch off the pushed `main`, touch
-**only** `labs/03-github-actions/README.md`, and open a PR: the workflow must be
-**skipped** (not just passed). Hold that thought — it collides with required checks in
+**Still step 2: ship both, then prove the filter.** Commit and push to `main` (it isn't
+protected yet). The push backstop runs `lint` and `validate` once, so both names show up as
+suggestions when step 3a asks you to pick the required checks. Then branch off the pushed
+`main`, touch **only** `labs/03-github-actions/README.md`, and open a PR. The checks panel
+stays **empty**: a path-filtered workflow never starts, so there is not even a *Skipped*
+entry, let alone a green pass. Hold that thought: it collides with required checks in
 step 3. Close that PR afterwards.
 
 ```bash
@@ -421,89 +450,166 @@ git push origin main                  # the push backstop runs lint + validate
 git switch -c docs/readme-only        # edit README.md only, then:
 git commit -am "docs: readme tweak"
 git push -u origin docs/readme-only
-gh pr create --fill                   # checks panel: the workflow is skipped
-gh pr close --delete-branch && git switch main
+gh pr create --fill                   # checks panel stays empty: no workflow started
+gh pr close docs/readme-only --delete-branch && git switch main
 ```
 
-**3 — Protect `main`.** In repo settings, add a branch protection rule for `main` with four
-things enabled — and grant yourself no bypass, or the rules won't apply to you as the
-repo admin:
+**3 — Protect `main`, then prove the wall from both sides.**
 
-- **Require a pull request before merging** — blocks direct commits
-- **Require status checks to pass** — select **`lint`** and **`validate`**
-- **Block force pushes** — no rewriting history
-- **Restrict deletions** — `main` can't be deleted
+**3a — Create a ruleset.** On github.com, open your fork's **Settings → Rules → Rulesets →
+New ruleset → New branch ruleset** and fill it in exactly like this:
 
-(If your Settings page offers the newer **rulesets** UI instead, the same four rules exist
-there — but leave **Restrict updates** *unticked*: it doesn't just block direct pushes, it
-blocks PR merges too.)
+- **Ruleset name:** `protect-main`
+- **Enforcement status:** Active
+- **Bypass list:** leave it **empty**. Then the rules apply to you too, even though you
+  are the repo admin.
+- **Target branches:** Add target → **Include default branch**
+- **Restrict deletions:** ticked (`main` can't be deleted)
+- **Require a pull request before merging:** ticked, with **Required approvals: 0**. You
+  work alone, and GitHub never lets you approve your own PR, so any other number locks you
+  out of your own repo.
+- **Require status checks to pass:** ticked → **Add checks** → pick **`lint`** and
+  **`validate`**
+- **Block force pushes:** ticked (no rewriting history)
+- Leave everything else unticked. **Restrict updates** in particular doesn't just block
+  direct pushes, it blocks PR merges too.
 
-> **This rule is temporary.** Your fork's `main` is shared by every lab, and branch
-> protection can't be scoped to a folder. Leave the rule on for the rest of this lab, then
-> **delete it when you finish Lab 03** (Settings → Branches, or Settings → Rules →
-> Rulesets). Otherwise a PR for any other lab that doesn't report `lint` and `validate`
-> hangs on "Expected — waiting for status" for the reason the next callout explains.
+Click **Create**. (Why a ruleset and not *Settings → Branches*, the classic branch
+protection? Both can enforce the same rules, but a classic rule exempts admins unless you
+also tick *Do not allow bypassing the above settings*, and ticking *Require a pull request*
+there can pre-tick *Require approvals: 1*, which a solo developer can never satisfy. A
+ruleset with an empty bypass list has neither trap.)
+
+> **This ruleset is temporary.** Your fork's `main` is shared by every lab, and a ruleset
+> can't be scoped to a folder: while it's active, *every* PR into `main` needs a `lint` and
+> a `validate` check. A required check matches **by name only**, no matter which workflow
+> reports it. Labs 04-06 happen to call their CI jobs `lint` and `validate` too, so a PR
+> that runs their CI satisfies your Lab 03 rule with *their* checks; any other PR (Lab 01,
+> 02 or 07 material, or a docs-only change) reports neither and sits on *Expected* forever,
+> for the reason the trap callout below explains. **Delete the ruleset when you finish
+> Lab 03:** Settings → Rules → Rulesets → `protect-main` → Delete ruleset.
 
 Now prove the wall exists, from both sides:
 
-1. **The forbidden route.** Commit straight to `main`
-   (`git commit --allow-empty -m "test: direct to main"`) and push. GitHub rejects the
-   push — direct commits to `main` are dead. Then drop the rejected commit, or every
-   branch you cut from `main` carries it: `git reset --hard origin/main`.
-2. **The proper route.** Make a **real** change on a branch — an empty commit matches no
-   `paths:` filter, so CI would never report and the merge would never unlock. Reword the
-   Overview's `Subtitle` text in its `view.json`, for example. Open a PR, wait for `lint`
-   and `validate` to go green, and merge. The merge button is now the only door in.
+**3b — The forbidden route.** Commit straight to `main` and push. GitHub rejects the push,
+even for you as the repo admin, because the bypass list is empty: the error names the
+violated rules (`Changes must be made through a pull request`, `Required status checks
+... are expected`). Then drop the rejected commit, or every branch you cut from `main`
+carries it.
 
-   ```bash
-   git switch -c fix/proper-route
-   # reword the Overview Subtitle's text in its view.json, then:
-   git commit -am "feat: reword overview subtitle"
-   git push -u origin fix/proper-route
-   gh pr create --fill
-   gh pr checks --watch && gh pr merge --merge   # merging waits for green checks
-   git switch main && git pull
-   ```
-3. **Break it on purpose.** On a branch, set the Clock's poll to `now(250)` by hand, commit,
-   and open a PR. Confirm GitHub blocks the merge. (Don't re-run `scripts/seed.sh` for this:
-   it plants all seven bugs, and fixing the Clock alone leaves the PR red.) Then edit the
-   Clock again and re-push — but fix *forward* (e.g. `now(1500)`), don't
-   revert to the exact original value: a PR whose net diff against `main` is empty matches
-   no `paths:` filter, so CI never re-reports and the required checks sit on "Expected"
-   forever — the step-1 trap in a second costume. (If you did revert exactly, push any real
-   change, or close the now-empty PR; there's nothing left to merge anyway.)
+```bash
+git switch main
+git commit --allow-empty -m "test: direct to main"
+git push                              # → rejected: GH013 Repository rule violations
+git reset --hard origin/main          # drop the rejected commit
+```
+
+**3c — The proper route.** Make a **real** change on a branch: an empty commit matches no
+`paths:` filter, so CI would never report and the merge would never unlock. Reword the
+Overview's `Subtitle` text in its `view.json`, for example. Open a PR, wait for `lint`
+and `validate` to go green, and merge. The merge button is now the only door in.
+
+```bash
+git switch -c fix/proper-route
+# reword the Overview Subtitle's text in its view.json, then:
+git commit -am "feat: reword overview subtitle"
+git push -u origin fix/proper-route
+gh pr create --fill
+sleep 15 && gh pr checks --watch && gh pr merge --merge   # checks take a few seconds to register
+git switch main && git pull
+```
+
+**3d — Break it on purpose.** On a branch, set the Clock's poll to `now(250)` by hand, commit,
+and open a PR. Confirm GitHub blocks the merge: `lint` goes red and `gh pr merge` refuses.
+(Don't re-run `scripts/seed.sh` for this: it plants all seven bugs, and fixing the Clock
+alone leaves the PR red.) If you installed the pre-commit hook (the Part 1 stretch), it
+blocks this commit on purpose: commit with `git commit --no-verify -am "test: reintroduce a bug"`
+instead. Then edit the Clock again and re-push, but fix *forward* (e.g. `now(1500)`): don't
+revert to the exact original value. A PR whose net diff against `main` is empty matches
+no `paths:` filter, so CI never re-reports and the required checks sit on *Expected*
+forever: the 3c empty-commit trap in a second costume. (If you did revert exactly, push any
+real change, or close the now-empty PR; there's nothing left to merge anyway.)
+
+```bash
+git switch -c fix/regression
+# edit the Clock binding → now(250), then:
+git commit -am "test: reintroduce a bug"     # pre-commit hook installed? add --no-verify
+git push -u origin fix/regression
+gh pr create --fill
+sleep 15 && gh pr checks --watch             # → lint fails; the merge stays blocked
+# edit the Clock binding → now(1500), then:
+git commit -am "fix: poll the clock at 1500 ms" && git push
+sleep 15 && gh pr checks --watch && gh pr merge --merge
+git switch main && git pull
+```
 
 > **The trap you just set.** Required checks and `paths:` filters interact badly. Your
-> docs-only PR from step 1 was *skipped* — but a required check that never reports
-> doesn't pass, it stays **"Expected — waiting for status" forever**. Try it: open
-> another README-only PR now and watch it hang. With branch protection on, nobody can
-> merge a docs-only change without an admin override. GitHub's documented fix is a
-> **twin no-op workflow** with the **same job names** — the job name is what a required
-> check matches on — and an inverse `paths-ignore:` filter, so it reports an instant
-> green `lint` and `validate` on exactly the PRs the real CI skips
+> docs-only PR from step 2 never started a workflow, and a required check that never
+> reports doesn't pass: it stays *Expected* ("Waiting for status to be reported") forever.
+> Try it: open another README-only PR now and watch it hang. With the ruleset on, nobody
+> can merge a docs-only change. GitHub's documented fix is a **twin no-op workflow** with
+> the **same job names** (the job name is what a required check matches on) and the
+> opposite path filter, so it reports an instant green `lint` and `validate` on exactly the
+> PRs the real CI skips
 > ([Handling skipped but required checks](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks)).
 > Building it is a stretch goal below; for this lab repo it's also fine to just
-> understand *why* the PR hangs — this exact interaction bites real teams.
+> understand *why* the PR hangs: this exact interaction bites real teams.
 
 **4 — Sanity check.** Commit any remaining changes. Your workflow should *structurally*
 match the reference you set aside at the start of this Part (`.github/ci-reference.yml` in
-this lab folder) — same triggers, jobs, and step order; step `name:` labels and comments
-may differ.
+this lab folder): same triggers, jobs, and step order; step `name:` labels and comments
+may differ. `git diff --no-index` compares any two files on disk, tracked or not, so it
+can put your file next to the reference:
+
+```bash
+git diff --no-index .github/ci-reference.yml ../../.github/workflows/lab03-ci.yml
+```
 
 ### Stretch `[OPTIONAL]`
 
 - **Fix the docs-only-PR hang** with the no-op twin from the step 3 callout: a second
-  workflow (`.github/workflows/lab03-ci-noop.yml`) whose `paths-ignore:` mirrors the real
-  filter list, with jobs named exactly
-  `lint` and `validate` that just `echo` and exit 0 — the *job* names are what the
-  required checks match on (the workflow's `name:` is cosmetic). Mind the caveat in
-  GitHub's docs: a PR touching both docs *and* code triggers both workflows, and two
-  check runs then report under each name.
+  workflow (`.github/workflows/lab03-ci-noop.yml`) with jobs named exactly `lint` and
+  `validate` that just `echo` and exit 0. The *job* names are what the required checks
+  match on (the workflow's `name:` is cosmetic). GitHub's docs build the twin with
+  `paths-ignore:` set to the real filter list, but in this monorepo that twin would also
+  fire on *every other lab's* PR and report a fake green `lint` and `validate` there. Scope
+  it to this lab instead: `paths:` with `!` negations, where a later `!` pattern removes
+  files an earlier pattern matched. The twin runs only when at least one changed file is
+  in this lab *and* outside the real CI's filter:
+
+  ```yaml
+  name: Lab 03 · CI (no-op twin)
+  on:
+    pull_request:
+      paths:
+        - "labs/03-github-actions/**"                # this lab's files...
+        - "!labs/03-github-actions/projects/**"      # ...minus everything lab03-ci.yml checks
+        - "!labs/03-github-actions/scripts/**"
+        - "!labs/03-github-actions/docker-compose.yml"
+        - "!labs/03-github-actions/.yamllint.yml"
+        - "!labs/03-github-actions/rule_config.json"
+        - "!labs/03-github-actions/.github/**"
+  permissions: {}
+  jobs:
+    lint:
+      runs-on: ubuntu-latest
+      steps:
+        - run: echo "No lint-relevant files changed."
+    validate:
+      runs-on: ubuntu-latest
+      steps:
+        - run: echo "No validate-relevant files changed."
+  ```
+
+  Prove it with another README-only PR: `lint` and `validate` report green within seconds
+  and the merge unlocks. Mind the caveat in GitHub's docs: a PR touching both docs *and*
+  code triggers both workflows, and two check runs then report under each name.
 - **Add the manual Run button.** From the triggers slide: add `workflow_dispatch:` to your
   `on:` block and push. The Actions tab grows a *Run workflow* button — click it and CI runs
   without a PR or a push. (Part 3's runner demo uses the same trigger.)
 - **Watch GitHub censor a secret, in your own fork.** You saw the demo in the We-do; now do
-  it yourself: `gh secret set EXAMPLE_SECRET --body "hunter2"`, add a step that runs
+  it yourself: `gh secret set EXAMPLE_SECRET --body "hunter2" -R "$(gh repo set-default --view)"`
+  (the `-R` is needed because your clone has more than one remote), add a step that runs
   `echo "leak? ${{ secrets.EXAMPLE_SECRET }}"`, push, and read the log — it prints
   `leak? ***`. Delete the echo step afterwards; the exercise is watching the masking work,
   not keeping a leak around.
@@ -518,7 +624,7 @@ may differ.
 - Where does the workflow actually run? (An ephemeral runner spun up per job.)
 - What happens when a step fails midway? A whole job? (`continue-on-error`, `needs:`.)
 - Required checks are a contract with the *team*, not just a setting — who decides what's blocking?
-- We pin pip packages to an exact version but actions to a mutable tag (`@v4`). What's the
+- We pin pip packages to an exact version but actions to a mutable tag (`@v7`). What's the
   difference in risk? (A tag can be moved by the action's owner; supply-chain-sensitive repos
   pin actions to a full commit SHA and let Dependabot bump them. This matters more once a
   self-hosted runner sits inside a plant network — Part 3.)
@@ -528,7 +634,7 @@ may differ.
 ## Part 3 — Self-hosted runners (a look ahead + optional hands-on)
 
 The instructor frames self-hosted runners with the class: what they are, when you'd reach for
-one, and the one rule that matters. You'll get **hands-on for real** in Labs 04–05 — deploying
+one, and the one rule that matters. You'll get **hands-on for real** in Labs 04 and 06: deploying
 to a real gateway usually means a runner that can reach it. An **optional** hands-on at the end
 of this Part lets you try the whole loop now, on your throwaway fork.
 
@@ -578,21 +684,29 @@ docker logs -f lab03-runner          # watch for "Listening for Jobs"
 ```
 
 **2 — Dispatch the shipped workflow.** The repo already ships
-[`.github/workflows/lab03-runner-demo.yml`](../../../.github/workflows/lab03-runner-demo.yml) —
+[`.github/workflows/lab03-runner-demo.yml`](../../../.github/workflows/lab03-runner-demo.yml):
 manual-only (`workflow_dispatch`), with `runs-on: [self-hosted, local-lab03]`, so there is
-nothing to write. Fire it, then flip to the runner's logs:
+nothing to write. Note your runner's container ID, fire the workflow, then read its run log:
 
 ```bash
-gh workflow run lab03-runner-demo.yml   # then watch the docker logs terminal
+docker ps --filter name=lab03-runner --format '{{.ID}}'   # your runner's container ID
+gh workflow run lab03-runner-demo.yml
+sleep 5
+RUN_ID=$(gh run list --workflow lab03-runner-demo.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run watch "$RUN_ID"                        # returns when the job is done
+gh run view "$RUN_ID" --log | grep "ran on"   # → ran on <that container ID>
 ```
 
-The job runs live in `docker logs`, on your machine, not GitHub's infra. It is deliberately
-a single `echo`, so it **goes green** — the proof is the hostname in the log: your container's,
-not a GitHub machine's. The labels did the routing. Keep in mind a bare runner only has what
-*you* put on it: the moment a job needs shellcheck or Python, "works on `ubuntu-latest`" is an
-assumption GitHub's image quietly satisfied and yours won't — Labs 04-05 install a real
-toolchain for exactly that reason. After the one job, the ephemeral container exits and the
-runner drops off the Runners tab.
+The job runs on your machine, not GitHub's infra. It is deliberately a single `echo`, so it
+**goes green**. `docker logs` only shows the runner's side of it (`Running job: hello`, then
+`completed with result: Succeeded`); the proof is in the run log. The hostname is in the run
+log (`gh run view --log`); match it to the container ID in `docker ps`: Docker names a
+container's host after its ID, so you're looking at your container, not a GitHub machine.
+The labels did the routing. Keep in mind a bare runner only has what *you* put on it: the
+moment a job needs shellcheck or Python, "works on `ubuntu-latest`" is an assumption
+GitHub's image quietly satisfied and yours won't. Labs 04 and 06 install a real toolchain
+on their runners for exactly that reason. After the one job, the ephemeral container exits
+and the runner drops off the Runners tab.
 
 **3 — Tear it down (mandatory if you ran it).** Cleanup *is* the exercise — a lingering runner
 on a public repo is the standing version of the fork-PR risk. The workflow itself is
@@ -617,11 +731,11 @@ You built a CI safety net for an Ignition project, end to end:
   — each catching a class of bug before it ships.
 - **A GitHub Actions workflow** that runs them on every PR, with least-privilege permissions,
   path filters.
-- **A required check** that turns "please run the linters" into "you cannot merge until they pass."
+- **A required check** (a ruleset on `main`) that turns "please run the linters" into "you cannot merge until they pass."
 - **An understanding of self-hosted runners** — when they're worth it, and the security
   weight they carry.
 
-**Before Lab 04:** delete the branch protection rule on your fork's `main` (Part 2, step 3),
+**Before Lab 04:** delete the `protect-main` ruleset on your fork's `main` (Part 2, step 3a),
 and skim [`docs/self-hosted-runners.md`](../docs/self-hosted-runners.md) — you'll register a real runner there.
 
 **What's next:** Lab 04 opens up the Ignition file structure itself — `project.json`, view
