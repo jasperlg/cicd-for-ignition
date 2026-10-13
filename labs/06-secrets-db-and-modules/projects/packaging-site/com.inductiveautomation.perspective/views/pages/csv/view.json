@@ -1,0 +1,64 @@
+{
+  "custom": {
+    "csvLine": "pump,3,ok"
+  },
+  "params": {},
+  "props": {},
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "row"
+    },
+    "children": [
+      {
+        "type": "ia.input.text-field",
+        "meta": {
+          "name": "CsvInput"
+        },
+        "position": {
+          "basis": "300px"
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.csvLine"
+              }
+            }
+          }
+        },
+        "props": {}
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "CsvOutput"
+        },
+        "position": {
+          "basis": "300px"
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "path": "view.custom.csvLine"
+              },
+              "transforms": [
+                {
+                  "type": "script",
+                  "code": "\tfrom org.apache.commons.csv import CSVFormat\n\tfrom java.io import StringReader\n\trecords = CSVFormat.DEFAULT.parse(StringReader(value or \"\")).getRecords()\n\treturn \" | \".join(records[0]) if records else \"\""
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

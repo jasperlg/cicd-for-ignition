@@ -54,6 +54,7 @@ on:
       - "labs/06-secrets-db-and-modules/services/config/**"
       - "labs/06-secrets-db-and-modules/services/modules.json"
       - "labs/06-secrets-db-and-modules/third-party-modules/**"
+      - "labs/06-secrets-db-and-modules/jar-files/**"
       - "labs/06-secrets-db-and-modules/db-migration/**"
       - "labs/06-secrets-db-and-modules/.deployignore"
       - "labs/06-secrets-db-and-modules/scripts/scan.sh"
@@ -215,6 +216,34 @@ jobs:
       # step above: copy, compare, restart only when changed. Also add
       # "labs/06-secrets-db-and-modules/jar-files/**" to the push.paths list
       # at the top of this file, or a JAR-only change never triggers a deploy.
+      - name: Ship library JARs (restart if changed)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          changed=false
+          for f in jar-files/jar/*.jar; do
+            name="$(basename "$f")"
+            before="$(docker exec "$IGNITION_CONTAINER" md5sum "/usr/local/bin/ignition/lib/core/gateway/$name" 2>/dev/null | cut -d' ' -f1 || true)"
+            if [ "$before" != "$(md5sum "$f" | cut -d' ' -f1)" ]; then
+              docker cp "$f" "$IGNITION_CONTAINER:/usr/local/bin/ignition/lib/core/gateway/$name"
+              echo "  shipped JAR $name"
+              changed=true
+            fi
+          done
+          if [ "$changed" = false ]; then
+            echo "Library JARs unchanged — no restart needed."
+            exit 0
+          fi
+          docker restart "$IGNITION_CONTAINER"
+          for _ in $(seq 1 60); do
+            if curl -fsS --max-time 3 "$IGNITION_URL/StatusPing" 2>/dev/null | grep -q RUNNING; then
+              echo "gateway RUNNING again."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "gateway did not come back after JAR restart" >&2
+          exit 1
 
       # Part 2B: add your "Migrate database" step HERE — scripts/migrate.sh
       # runs on the runner and reads the DB password there (the materialized
