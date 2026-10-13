@@ -166,6 +166,7 @@ services:
       -Dignition.allowunsignedmodules=true
       -Dignition.gateway.externalModulesFolder=/third-party-modules
       -Dignition.config.mode=local-development
+    secrets: [postgres_password, reporting_password]
     healthcheck: *ignition-healthcheck
     <<: *ignition-resources
     networks:
@@ -307,9 +308,10 @@ services:
         max-file: "10"
     environment:
       POSTGRES_USER: "${POSTGRES_USER:-ignition}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-lab06-postgres-pw}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: ignition_local_development
-      REPORTING_PASSWORD: "${REPORTING_PASSWORD:-lab06-reporting-pw}"
+      REPORTING_PASSWORD_FILE: /run/secrets/reporting_password
+    secrets: [postgres_password, reporting_password]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ignition}"]
       interval: 5s
@@ -357,3 +359,9 @@ volumes:
   gateway-test-data:
   gateway-production-data:
   timescaledb-data:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  reporting_password:
+    file: ./secrets/reporting_password.txt
