@@ -62,7 +62,10 @@ x-ignition-env: &ignition-env
     com.inductiveautomation.opcua.drivers.tcpudp,
     com.inductiveautomation.webdev,
     com.inductiveautomation.jdbc.postgresql,
-    dev.bwdesigngroup.flint.FlintDesignerBridge
+    dev.bwdesigngroup.flint.FlintDesignerBridge,
+    com.mussonindustrial.embr.periscope,
+    com.mussonindustrial.embr.charts,
+    com.mustry.historian.timescaledb
   # Embr-Periscope, Embr-Charts and the TimescaleDB Historian are the three
   # spare modules Part 3 installs. Their .modl files sit in
   # third-party-modules/, but they ship with NO services/modules.json entry
@@ -76,9 +79,15 @@ x-ignition-env: &ignition-env
   # so image-based/fresh gateways accept them from config alone. That
   # derivation is the whole point of Part 3.
   ACCEPT_MODULE_LICENSES: >-
-    dev.bwdesigngroup.flint.FlintDesignerBridge
+    dev.bwdesigngroup.flint.FlintDesignerBridge,
+    com.mussonindustrial.embr.periscope,
+    com.mussonindustrial.embr.charts,
+    com.mustry.historian.timescaledb
   ACCEPT_MODULE_CERTS: >-
-    dev.bwdesigngroup.flint.FlintDesignerBridge
+    dev.bwdesigngroup.flint.FlintDesignerBridge,
+    com.mussonindustrial.embr.periscope,
+    com.mussonindustrial.embr.charts,
+    com.mustry.historian.timescaledb
   GATEWAY_RESTORE_DISABLED: "true"
   GATEWAY_NETWORK_ENABLED: "true"
   TZ: "Europe/Brussels"
