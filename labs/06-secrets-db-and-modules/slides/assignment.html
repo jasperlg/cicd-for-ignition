@@ -464,26 +464,17 @@ mv services/config/resources/<span class="cmd2">{local-development,core}</span>/
       <div class="steps">
         <div class="step"><div class="ix">1</div><div class="tx"><b>Diagnose:</b> <span class="inlinecode">TimescaleDB_Reports</span> only exists in <span class="inlinecode">core</span>, so test targets <span class="inlinecode">ignition_local_development</span>. And neither secret file exists on the test host yet.</div></div>
         <div class="step"><div class="ix">2</div><div class="tx"><b>Fix the target (Ignition Gateway):</b> open <span class="inlinecode">TimescaleDB_Reports</span> and use <b>Create Override</b> to add the settings for a new deployment mode: don't edit the <span class="inlinecode">core</span> values. Create a <b>test</b> override pointing <span class="inlinecode">connectURL</span> at <span class="inlinecode">ignition_test</span>, then a <b>production</b> one at <span class="inlinecode">ignition_production</span> (production inherits the same core flaw). <span class="inlinecode">TimescaleDB</span> already has all three modes: use it as the example.</div></div>
-        <div class="step"><div class="ix">3</div><div class="tx"><b>Fix the values (GitHub):</b> add <span class="inlinecode">POSTGRES_PASSWORD</span> and <span class="inlinecode">REPORTING_PASSWORD</span> as secrets on <b>both</b> environments, <span class="inlinecode">lab06-gateway-test</span> and <span class="inlinecode">lab06-gateway-production</span> (1D promotes the same fix to production). Same values as <span class="inlinecode">secrets/*.example</span>: one Postgres serves all three databases. Four commands on the right, fed from your 1A files.</div></div>
+        <div class="step"><div class="ix">3</div><div class="tx"><b>Fix the values (GitHub):</b> add <span class="inlinecode">POSTGRES_PASSWORD</span> and <span class="inlinecode">REPORTING_PASSWORD</span> as secrets on <b>both</b> environments, <span class="inlinecode">lab06-gateway-test</span> and <span class="inlinecode">lab06-gateway-production</span> (1D promotes the same fix to production). Same values as <span class="inlinecode">secrets/*.example</span>: one Postgres serves all three databases. The commands on the right read your 1A files.</div></div>
         <div class="step"><div class="ix">4</div><div class="tx">Add the <b>Materialize secret files</b> step to <span class="inlinecode">lab06-deploy.yml</span>, directly <b>above</b> the existing <span class="inlinecode">Ship secret files into gateway container</span> step: <span class="inlinecode">umask 177</span> + <span class="inlinecode">printf</span>, one file per secret. That ship step is a no-op until yours writes the files.</div></div>
         <div class="step"><div class="ix">5</div><div class="tx">Sanity check locally: <span class="inlinecode">./scripts/validate.sh</span> green, secret scan zero findings, <span class="inlinecode">git status</span> shows no <span class="inlinecode">secrets/*.txt</span>.</div></div>
       </div>
       <div>
-        <div class="code"><pre><span class="cm"># 1: two fault causes</span>
-TimescaleDB           <span class="cm">← has local-development/test/production overrides</span> <span class="grn">✓</span>
-TimescaleDB_Reports   <span class="cm">← core only → ignition_local_development</span>  <span class="red">✗</span>
-                      <span class="cm">  everywhere, test included</span>
-<span class="cm">…and no secret files exist on the test host yet.</span>
-
-<span class="cm"># 3: the four environment secrets</span>
-gh secret set POSTGRES_PASSWORD  -R <span class="cmd2">&lt;you&gt;</span>/cicd-for-ignition \
-  --env lab06-gateway-test       &lt; secrets/postgres_password.txt
-gh secret set REPORTING_PASSWORD -R <span class="cmd2">&lt;you&gt;</span>/cicd-for-ignition \
-  --env lab06-gateway-test       &lt; secrets/reporting_password.txt
-gh secret set POSTGRES_PASSWORD  -R <span class="cmd2">&lt;you&gt;</span>/cicd-for-ignition \
-  --env lab06-gateway-production &lt; secrets/postgres_password.txt
-gh secret set REPORTING_PASSWORD -R <span class="cmd2">&lt;you&gt;</span>/cicd-for-ignition \
-  --env lab06-gateway-production &lt; secrets/reporting_password.txt
+        <div class="code"><pre><span class="cm"># 3: the four environment secrets (2 secrets × 2 envs)</span>
+R=<span class="cmd2">&lt;you&gt;</span>/cicd-for-ignition
+for e in lab06-gateway-test lab06-gateway-production; do
+  gh secret set POSTGRES_PASSWORD  -R $R --env $e &lt; secrets/postgres_password.txt
+  gh secret set REPORTING_PASSWORD -R $R --env $e &lt; secrets/reporting_password.txt
+done
 
 <span class="cm"># 4: lab06-deploy.yml: the step you add, directly</span>
 <span class="cm">#    ABOVE "Ship secret files into gateway container"</span>
@@ -715,11 +706,7 @@ docker exec lab06-timescaledb psql -U ignition \
 
 <span class="cm"># 4: proof on local: three "Starting up module" lines</span>
 docker logs lab06-gateway-local-development 2&gt;&amp;1 \
-  | grep -E "Starting up module 'com\.(mussonindustrial|mustry)"
-
-<span class="cm"># 6: production's ledger after the release</span>
-docker exec lab06-timescaledb psql -U ignition \
-  -d ignition_production -c 'SELECT * FROM schema_migrations;'</pre></div>
+  | grep -E "Starting up module 'com\.(mussonindustrial|mustry)"</pre></div>
         <div class="goal" style="margin-top:18px">
           <span class="badge">Fresh-boot test</span>
           <p>The real proof is a <b>fresh gateway</b> coming up complete. If your test gateway is file-based, ask: what would this look like in yesterday's image-based deploy? (Answer: one COPY layer and the same manifest.)</p>

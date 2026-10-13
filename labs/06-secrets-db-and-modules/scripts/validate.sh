@@ -12,8 +12,8 @@
 #   4. security-properties doesn't name a throwaway temp_N identity.
 # Runs when the tool is installed, the `lint` job (skipped with a hint
 # otherwise; CI always runs them):
-#   5. ign-lint on every Perspective view.json, with rule_config.json
-#      (pip install ign-lint==0.6.1, the version CI pins).
+#   5. ign-lint on every Perspective view.json, with rule_config.json (run
+#      from the repo root, like CI; pip install ign-lint==0.6.1).
 #   6. yamllint, shellcheck and actionlint, as in CI.
 #   7. docker compose config -q.
 #
@@ -142,11 +142,14 @@ else
 fi
 
 # 5. ign-lint (optional) -------------------------------------------------------
-# Same command as the lint job. ign-lint exits non-zero on warnings too, so a
-# view that CI rejects fails here first.
+# Same command as the lint job, from the repo root (rule_config.json names its
+# pylint config repo-root-relative). ign-lint exits non-zero on warnings too,
+# so a view that CI rejects fails here first.
+repo_root="$(git rev-parse --show-toplevel)"
+lab_rel="${PROJECT_ROOT#"$repo_root"/}"
 echo "→ ign-lint (projects/**/view.json)"
 if command -v ign-lint > /dev/null 2>&1; then
-  if ign-lint --config rule_config.json --files "projects/**/view.json"; then
+  if (cd "$repo_root" && ign-lint --config "$lab_rel/rule_config.json" --files "$lab_rel/projects/**/view.json"); then
     echo -e "  ${GREEN}ok${NC}"
   else
     rc=1
@@ -156,7 +159,6 @@ else
 fi
 
 # 6. yamllint + shellcheck (optional) -----------------------------------------
-repo_root="$(git rev-parse --show-toplevel)"
 echo "→ yamllint (this lab + .github/workflows/lab06-*.yml)"
 if command -v yamllint > /dev/null 2>&1; then
   if yamllint -c .yamllint.yml . "$repo_root"/.github/workflows/lab06-*.yml; then

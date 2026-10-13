@@ -1,5 +1,5 @@
 {
-  "_comment": "ign-lint rules for the lab Perspective views. Component min_length is 1: this lab ships dense KPI/status tiles whose leaf label/value/unit components use single-character names (L, V, U, S) by design. Scripts are linted with .config/.ignition-pylintrc: ign-lint's bundled pylint config plus import-outside-toplevel disabled, because a Perspective transform or event script is a function body and can only import inside itself. All other rules match the course standard. Docs: https://bw-design-group.github.io/ignition-lint",
+  "_comment": "ign-lint rules for the lab Perspective views. Component min_length is 1: this lab ships dense KPI/status tiles whose leaf label/value/unit components use single-character names (L, V, U, S) by design. Scripts are linted with .config/.ignition-pylintrc: ign-lint's bundled pylint config plus import-outside-toplevel disabled, because a Perspective transform or event script is a function body and can only import inside itself. ign-lint resolves that path against its working directory, so it is repo-root-relative and ign-lint always runs from the repo root (CI, scripts/validate.sh and the pre-commit hook). All other rules match the course standard. Docs: https://bw-design-group.github.io/ignition-lint",
   "NamePatternRule": {
     "enabled": true,
     "kwargs": {
@@ -36,7 +36,7 @@
   "PylintScriptRule": {
     "enabled": true,
     "kwargs": {
-      "pylintrc": ".config/.ignition-pylintrc",
+      "pylintrc": "labs/06-secrets-db-and-modules/.config/.ignition-pylintrc",
       "debug": false,
       "debug_dir": ".ignition-lint/debug/",
       "batch_mode": false,

@@ -73,7 +73,12 @@ jobs:
           shellcheck -x scripts/*.sh
 
       - name: ignition-lint (Perspective views)
-        run: ign-lint --config rule_config.json --files "projects/**/view.json"
+        # From the repo root, like the pre-commit hook: rule_config.json
+        # names its pylint config with a repo-root-relative path.
+        working-directory: .
+        run: >-
+          ign-lint --config labs/06-secrets-db-and-modules/rule_config.json
+          --files "labs/06-secrets-db-and-modules/projects/**/view.json"
 
       - name: docker compose config
         run: docker compose config -q
