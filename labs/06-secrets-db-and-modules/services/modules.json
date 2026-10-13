@@ -128,6 +128,24 @@
     "onStartup": "enabled",
     "certFingerprint": "88338069eb9c3f2d46a4baf701e4fa71bf073293"
   },
+  "com.mussonindustrial.embr.charts": {
+    "filename": "/third-party-modules/Embr-Charts-Ignition83-4.0.1.modl",
+    "onStartup": "enabled",
+    "certFingerprint": "e5a3cf3f06627c175b68b0122ac8f2c3f9c992e2",
+    "licenseAgreementHash": 3266212556
+  },
+  "com.mussonindustrial.embr.periscope": {
+    "filename": "/third-party-modules/Embr-Periscope-Ignition83-0.12.0.modl",
+    "onStartup": "enabled",
+    "certFingerprint": "e5a3cf3f06627c175b68b0122ac8f2c3f9c992e2",
+    "licenseAgreementHash": 101444854
+  },
+  "com.mustry.historian.timescaledb": {
+    "filename": "/third-party-modules/TimescaleDB-Historian.modl",
+    "onStartup": "enabled",
+    "certFingerprint": "003f467208c9abf8b178960c01e102bb76a9cc98",
+    "licenseAgreementHash": 106690219
+  },
   "dev.bwdesigngroup.flint.FlintDesignerBridge": {
     "filename": "/third-party-modules/Flint-Designer-Bridge-1.2.0-8.3.modl",
     "onStartup": "enabled",
