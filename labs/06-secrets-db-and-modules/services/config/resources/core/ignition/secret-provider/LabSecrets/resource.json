@@ -1,0 +1,19 @@
+{
+  "scope": "A",
+  "description": "",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "config.json"
+  ],
+  "attributes": {
+    "lastModification": {
+      "actor": "api-token:cicd:192.168.186.1",
+      "timestamp": "2026-10-13T19:22:19Z"
+    },
+    "uuid": "421e3e54-5082-4758-a518-723dc32898f8",
+    "lastModificationSignature": "7f3397f691f893441b26f367a58a4e9d1073522467986e765fdba5126b4a6030",
+    "enabled": true
+  }
+}

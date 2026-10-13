@@ -134,6 +134,17 @@ jobs:
       # GitHub environment secrets into files under secrets/ (umask 177 +
       # printf '%s'). Without it the step below finds nothing and ships
       # nothing, which is exactly the warm-up's broken state.
+      - name: Materialize secret files
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          REPORTING_PASSWORD: ${{ secrets.REPORTING_PASSWORD }}
+        run: |
+          umask 177
+          mkdir -p secrets
+          printf '%s' "$POSTGRES_PASSWORD" \
+            > secrets/postgres_password.txt
+          printf '%s' "$REPORTING_PASSWORD" \
+            > secrets/reporting_password.txt
 
       - name: Ship secret files into gateway container
         # Hands whatever the Materialize step wrote under secrets/ to the
@@ -213,6 +224,13 @@ jobs:
       # continue-on-error: a failed migration must stop the run before any
       # screen ships. Derive the database from $DEPLOY_TARGET (env above):
       # a production deploy migrates ignition_production, not the test database.
+      - name: Migrate database
+        run: |
+          case "$DEPLOY_TARGET" in
+            production) db=ignition_production ;;
+            *)    db=ignition_test ;;
+          esac
+          ./scripts/migrate.sh up --database "$db"
 
       - name: Prune working tree per .deployignore
         # Patterns containing a slash → repo-relative path match.
