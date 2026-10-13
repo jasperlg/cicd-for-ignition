@@ -397,7 +397,7 @@
                     "binding": {
                       "type": "expr",
                       "config": {
-                        "expression": "dateFormat(now(1000), 'EEE HH:mm:ss')"
+                        "expression": "dateFormat(now(250), 'EEE HH:mm:ss')"
                       }
                     }
                   }
