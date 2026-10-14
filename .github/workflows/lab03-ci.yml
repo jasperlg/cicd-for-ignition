@@ -34,6 +34,7 @@ jobs:
 
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      # TODO (step 0): run scripts/validate.sh
+      - run: scripts/validate.sh
