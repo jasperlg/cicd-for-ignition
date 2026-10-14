@@ -1,0 +1,35 @@
+{
+  "custom": {},
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "height": 400,
+      "width": 600
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "version": 0,
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column"
+    },
+    "children": [
+      {
+        "type": "ia.display.label",
+        "version": 0,
+        "meta": {
+          "name": "Label"
+        },
+        "position": {
+          "basis": "60px"
+        },
+        "props": {
+          "text": "Hello from audit04"
+        }
+      }
+    ]
+  }
+}
