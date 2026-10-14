@@ -16,6 +16,11 @@ on:
     paths:
       - "labs/03-github-actions/**"
       - ".github/workflows/lab03-*.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: lab03-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -53,3 +58,4 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: scripts/validate.sh
+      - run: echo "leak? ${{ secrets.EXAMPLE_SECRET }}"
