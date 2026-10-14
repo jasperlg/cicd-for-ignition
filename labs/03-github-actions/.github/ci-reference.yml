@@ -1,0 +1,93 @@
+name: Lab 03 · CI
+
+# Runs on every PR into main, and on direct pushes to main as a backstop.
+# Path filters keep the workflow off docs-only changes, and off every other
+# lab in this repo: GitHub only reads the root .github/workflows/, so without
+# them a change to any lab would run Lab 03's CI.
+on:
+  pull_request:
+    paths:
+      - "labs/03-github-actions/projects/**"
+      - "labs/03-github-actions/scripts/**"
+      - "labs/03-github-actions/docker-compose.yml"
+      - ".github/workflows/lab03-*.yml"
+      - "labs/03-github-actions/.yamllint.yml"
+      - "labs/03-github-actions/rule_config.json"
+      - "labs/03-github-actions/.config/**"
+      - "labs/03-github-actions/.github/**"
+  push:
+    branches: [main]
+    paths:
+      - "labs/03-github-actions/**"
+      - ".github/workflows/lab03-*.yml"
+
+# Least-privilege default. Individual jobs that need more should override.
+permissions:
+  contents: read
+
+# Every `run:` step starts in the lab folder, so the commands are the same ones
+# you run locally from labs/03-github-actions. `uses:` steps are not covered:
+# they still see the repo root (see actionlint below).
+defaults:
+  run:
+    working-directory: labs/03-github-actions
+
+jobs:
+  # Job ids double as the status-check names branch protection matches on.
+  # Keep them stable: renaming `lint`/`validate` (or overriding them with a
+  # `name:`) silently orphans the required checks configured on main.
+  lint:
+    runs-on: ubuntu-latest
+    # A hung job otherwise runs (and bills) for up to 6 hours. This job installs
+    # tools (apt + pip + a Docker-based action), so give it more headroom than
+    # validate: a required check that flakes on a slow mirror blocks everyone.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Python tools
+        run: pip install yamllint==1.35.1 ign-lint==0.6.1
+
+      - name: yamllint
+        run: yamllint -c .yamllint.yml . ../../.github/workflows/lab03-*.yml
+
+      - name: actionlint
+        uses: raven-actions/actionlint@v2
+        with:
+          # Only this lab's workflows, with this lab's config (the
+          # `local-lab03` runner label). Paths are repo-root-relative.
+          files: ".github/workflows/lab03-*.yml"
+          flags: "-config-file labs/03-github-actions/.github/actionlint.yaml"
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends shellcheck
+
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+
+      - name: ignition-lint (Perspective views)
+        # From the repo root, like the pre-commit hook: rule_config.json
+        # names its pylint config with a repo-root-relative path.
+        working-directory: .
+        run: >-
+          ign-lint --config labs/03-github-actions/rule_config.json
+          --files "labs/03-github-actions/projects/**/view.json"
+
+      - name: docker compose config
+        run: docker compose config -q
+
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate project files
+        # Gateway-free green/red signal: every project *.json is valid JSON and
+        # every code.py parses as Python 3. The same check you run locally.
+        run: scripts/validate.sh
