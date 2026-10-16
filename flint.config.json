@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "0.2",
+  "project-paths": [
+    "labs/04-ignition-file-based-deploy/projects",
+    "labs/05-ignition-image-based-deploy/projects",
+    "/Users/jasperlouage/_code/mustry-academy/cicd-course/labs/06-secrets-db-and-modules/projects",
+    "labs/07-multi-gateway-deploy"
+  ],
+  "gateways": {
+    "local": {
+      "host": "http://localhost",
+      "port": 8088,
+      "ssl": false,
+      "ignoreSSLErrors": true,
+      "projects": [
+        "example-project",
+        "packaging-site"
+      ],
+      "enabled": true,
+      "id": "local"
+    }
+  },
+  "settings": {
+    "showInheritedResources": true,
+    "groupResourcesByType": true,
+    "autoRefreshProjects": true,
+    "searchHistoryLimit": 50
+  }
+}
