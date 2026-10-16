@@ -6,7 +6,7 @@
 # "label local-lab03 is unknown" on every run. Declaring it here is the
 # documented fix — and how real repos teach actionlint about their own
 # self-hosted fleet.
-#
+# NEW COMMENT
 # actionlint only auto-loads .github/actionlint.yaml at the repo root, so Lab 03
 # passes this file explicitly: `-config-file .github/actionlint.yaml` locally,
 # the `flags:` input in lab03-ci.yml, and `args:` in .pre-commit-config.yaml.
