@@ -114,3 +114,6 @@ rule_config.json
 .config/
 flint.config.json
 .flint/
+
+# Project exports are copies of a project: keep them out of the image
+**/*.zip
