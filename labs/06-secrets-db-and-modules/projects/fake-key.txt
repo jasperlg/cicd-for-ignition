@@ -1,2 +1,1 @@
-aws_secret = "AKIAIOSFODNN7EXAMPLEX"
-github_token = "ghp_1234567890abcdefghijklmnopqrstuvwxyzAB"
+reporting_api_key = "6b05b576aa3952cdb0232098a5a0fc3629374522"
