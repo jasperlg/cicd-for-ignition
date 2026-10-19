@@ -54,6 +54,7 @@ on:
       - "labs/06-secrets-db-and-modules/services/config/**"
       - "labs/06-secrets-db-and-modules/services/modules.json"
       - "labs/06-secrets-db-and-modules/third-party-modules/**"
+      - "labs/06-secrets-db-and-modules/jar-files/**"
       - "labs/06-secrets-db-and-modules/db-migration/**"
       - "labs/06-secrets-db-and-modules/.deployignore"
       - "labs/06-secrets-db-and-modules/scripts/scan.sh"
@@ -220,6 +221,38 @@ jobs:
             echo "::error::The gateway is stuck commissioning after the module restart: a module in the manifest is enabled but its certificate or licence is not accepted. Open the gateway's web UI to see which one."
           fi
           echo "gateway did not come back after module restart (last StatusPing: ${state:-no answer})" >&2
+          exit 1
+
+      - name: Ship library JARs (restart if changed)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          changed=false
+          for f in jar-files/jar/*.jar; do
+            name="$(basename "$f")"
+            before="$(docker exec "$IGNITION_CONTAINER" md5sum "/usr/local/bin/ignition/lib/core/gateway/$name" 2>/dev/null | cut -d' ' -f1 || true)"
+            if [ "$before" != "$(md5sum "$f" | cut -d' ' -f1)" ]; then
+              docker cp "$f" "$IGNITION_CONTAINER:/usr/local/bin/ignition/lib/core/gateway/$name"
+              echo "  shipped JAR $name"
+              changed=true
+            fi
+          done
+          if [ "$changed" = false ]; then
+            echo "Library JARs unchanged — no restart needed."
+            exit 0
+          fi
+          docker restart "$IGNITION_CONTAINER"
+          # RUNNING without COMMISSIONING, like the module step above.
+          state=''
+          for _ in $(seq 1 60); do
+            state="$(curl -fsS --max-time 3 "$IGNITION_URL/StatusPing" 2>/dev/null || true)"
+            if echo "$state" | grep -q '"state":"RUNNING"' && ! echo "$state" | grep -q COMMISSIONING; then
+              echo "gateway RUNNING again."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "gateway did not come back after JAR restart (last StatusPing: ${state:-no answer})" >&2
           exit 1
 
       # Stretch S4: paste the ready-made "Ship library JARs" step HERE — it
