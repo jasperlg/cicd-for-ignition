@@ -1,0 +1,19 @@
+{
+  "scope": "A",
+  "description": "Read-only reporting connection (reporting user)",
+  "version": 1,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "config.json"
+  ],
+  "attributes": {
+    "lastModification": {
+      "actor": "api-token:cicd:192.168.186.1",
+      "timestamp": "2026-10-19T18:37:25Z"
+    },
+    "uuid": "e9e5d3c4-8dab-4df9-9691-2a1c623cd29e",
+    "lastModificationSignature": "d487aef3fd0ccb62c47ebcd9a599f6f4824098f2a0729d5e38b7d37f511d453f",
+    "enabled": true
+  }
+}

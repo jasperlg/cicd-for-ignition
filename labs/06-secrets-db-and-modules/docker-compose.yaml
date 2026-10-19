@@ -123,6 +123,12 @@ x-ignition-healthcheck: &ignition-healthcheck
   retries: 10
   start_period: 90s
 
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  reporting_password:
+    file: ./secrets/reporting_password.txt
+
 services:
   # --- local gateway: edits on the host show up here immediately --------------
   gateway-local-development:
@@ -172,6 +178,7 @@ services:
       -Dignition.config.mode=local-development
     healthcheck: *ignition-healthcheck
     <<: *ignition-resources
+    secrets: [postgres_password, reporting_password]
     networks:
       - default
     depends_on:
@@ -311,9 +318,10 @@ services:
         max-file: "10"
     environment:
       POSTGRES_USER: "${POSTGRES_USER:-ignition}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-lab06-postgres-pw}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: ignition_local_development
-      REPORTING_PASSWORD: "${REPORTING_PASSWORD:-lab06-reporting-pw}"
+      REPORTING_PASSWORD_FILE: /run/secrets/reporting_password
+    secrets: [postgres_password, reporting_password]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ignition}"]
       interval: 5s
