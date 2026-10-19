@@ -1,0 +1,2 @@
+aws_secret = "AKIAIOSFODNN7EXAMPLEX"
+github_token = "ghp_1234567890abcdefghijklmnopqrstuvwxyzAB"
