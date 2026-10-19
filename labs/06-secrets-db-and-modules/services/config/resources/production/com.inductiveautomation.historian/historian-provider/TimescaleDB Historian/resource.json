@@ -9,11 +9,11 @@
   ],
   "attributes": {
     "lastModification": {
-      "actor": "admin",
-      "timestamp": "2026-05-21T13:28:20Z"
+      "actor": "api-token:cicd:192.168.186.1",
+      "timestamp": "2026-10-19T18:44:09Z"
     },
     "uuid": "a1b2c3d4-0003-4aaa-8000-000000000003",
-    "lastModificationSignature": "8ada1df1dbda3961eb6980c41ebb287519a576c107091b36f0cd943f3a32526b",
+    "lastModificationSignature": "9c7880c7d618986e6dbddf53e3bc7d597d846fd2f7fee6df406f9db4a44296a4",
     "enabled": true
   }
 }

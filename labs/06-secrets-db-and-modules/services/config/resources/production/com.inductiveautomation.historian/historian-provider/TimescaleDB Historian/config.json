@@ -9,13 +9,10 @@
     "jdbcUrl": "jdbc:postgresql://timescaledb:5432/ignition_production?currentSchema\u003dpublic",
     "password": {
       "data": {
-        "ciphertext": "MlytACJwJEpUUGX3UVXglowz8A",
-        "encrypted_key": "YHWyNzmatSyy2azG1QH2qCf5mYmr4q1LJzk_fxzrJq61L2muub0W2g",
-        "iv": "qmVogkJax27bKKvp",
-        "protected": "eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMjU2R0NNIiwiaWF0IjoxNzkxOTc3MzIwLCJraWQiOiIyYmI1YmVkOC0xN2FhLTQyZDktOGJhMC0zMzFjYmQ4ZDk3MzciLCJ6aXAiOiJERUYifQ",
-        "tag": "X6mYhdJ8TLIx3VsAtEvx9A"
+        "providerName": "LabSecrets",
+        "secretName": "POSTGRES_PASSWORD"
       },
-      "type": "Embedded"
+      "type": "Referenced"
     },
     "timeoutMs": 5000,
     "username": "ignition"
